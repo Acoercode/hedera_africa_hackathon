@@ -1,32 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material';
 import { AllWalletsProvider } from './services/wallets/AllWalletsProvider';
 import ZivaHealthApp from './components/ZivaHealthApp';
 import AuthPage from './components/AuthPage';
 import { theme } from './theme';
+import { WalletConnectContext } from './contexts/WalletConnectContext';
+import { MetamaskContext } from './contexts/MetamaskContext';
 import "./App.css";
 
-function App() {
+const AppContent: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const walletConnectContext = useContext(WalletConnectContext);
+  const metamaskContext = useContext(MetamaskContext);
 
   const handleAuthSuccess = () => {
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
+    walletConnectContext.setAccountId('');
+    walletConnectContext.setIsConnected(false);
+    metamaskContext.setMetamaskAccountAddress('');
+    
     setIsAuthenticated(false);
   };
 
   return (
+    <>
+      <CssBaseline />
+      {isAuthenticated ? (
+        <ZivaHealthApp onLogout={handleLogout} />
+      ) : (
+        <AuthPage onAuthSuccess={handleAuthSuccess} />
+      )}
+    </>
+  );
+};
+
+function App() {
+  return (
     <ThemeProvider theme={theme}>
       <AllWalletsProvider>
-        <CssBaseline />
-        {isAuthenticated ? (
-          <ZivaHealthApp onLogout={handleLogout} />
-        ) : (
-          <AuthPage onAuthSuccess={handleAuthSuccess} />
-        )}
+        <AppContent />
       </AllWalletsProvider>
     </ThemeProvider>
   );

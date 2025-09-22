@@ -13,7 +13,12 @@ import {
   Paper,
   IconButton,
   Badge,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -38,10 +43,34 @@ interface ZivaHealthAppProps {
 
 const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
   const [currentTab, setCurrentTab] = useState(0);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const { walletInterface } = useWalletInterface();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
+  };
+
+  const handleLogoutClick = () => {
+    setShowLogoutDialog(true);
+  };
+
+  const handleLogoutConfirm = async () => {
+    try {
+      // Disconnect wallet if connected
+      if (walletInterface && typeof walletInterface.disconnect === 'function') {
+        await walletInterface.disconnect();
+        console.log('Wallet disconnected successfully');
+      }
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+    } finally {
+      setShowLogoutDialog(false);
+      onLogout();
+    }
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutDialog(false);
   };
 
   const renderMainContent = () => {
@@ -81,7 +110,7 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
           </Box>
           <IconButton 
             color="inherit" 
-            onClick={onLogout}
+            onClick={handleLogoutClick}
             title="Logout"
           >
             <LogoutIcon />
@@ -123,6 +152,29 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
           />
         </BottomNavigation>
       </Paper>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog
+        open={showLogoutDialog}
+        onClose={handleLogoutCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Logout</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to logout? This will disconnect your wallet and return you to the login screen.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleLogoutCancel} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleLogoutConfirm} color="error" variant="contained">
+            Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
