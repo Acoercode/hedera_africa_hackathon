@@ -1,11 +1,29 @@
 import { WalletConnectContext } from "../../../contexts/WalletConnectContext";
-import { useCallback, useContext, useEffect } from 'react';
+import { useCallback, useContext, useEffect } from "react";
 import { WalletInterface } from "../walletInterface";
-import { AccountId, ContractExecuteTransaction, ContractId, LedgerId, TokenAssociateTransaction, TokenId, Transaction, TransactionId, TransferTransaction, Client } from "@hashgraph/sdk";
+import {
+  AccountId,
+  ContractExecuteTransaction,
+  ContractId,
+  LedgerId,
+  TokenAssociateTransaction,
+  TokenId,
+  Transaction,
+  TransactionId,
+  TransferTransaction,
+  Client,
+} from "@hashgraph/sdk";
 import { ContractFunctionParameterBuilder } from "../contractFunctionParameterBuilder";
 import { appConfig } from "../../../config";
 import { SignClientTypes } from "@walletconnect/types";
-import { DAppConnector, HederaJsonRpcMethod, HederaSessionEvent, HederaChainId, SignAndExecuteTransactionParams, transactionToBase64String } from "@hashgraph/hedera-wallet-connect";
+import {
+  DAppConnector,
+  HederaJsonRpcMethod,
+  HederaSessionEvent,
+  HederaChainId,
+  SignAndExecuteTransactionParams,
+  transactionToBase64String,
+} from "@hashgraph/hedera-wallet-connect";
 import EventEmitter from "events";
 
 // Created refreshEvent because `dappConnector.walletConnectClient.on(eventName, syncWithWalletConnectContext)` would not call syncWithWalletConnectContext
@@ -25,7 +43,7 @@ const metadata: SignClientTypes.Metadata = {
   description: "Hedera CRA Template",
   url: window.location.origin,
   icons: [window.location.origin + "/logo192.png"],
-}
+};
 const dappConnector = new DAppConnector(
   metadata,
   LedgerId.fromString(hederaNetwork),
@@ -54,7 +72,7 @@ export const openWalletConnectModal = async () => {
 class WalletConnectWallet implements WalletInterface {
   private getSigner() {
     if (dappConnector.signers.length === 0) {
-      throw new Error('No signers found!');
+      throw new Error("No signers found!");
     }
     return dappConnector.signers[0];
   }
@@ -75,7 +93,11 @@ class WalletConnectWallet implements WalletInterface {
     return txResult ? txResult.transactionId : null;
   }
 
-  async transferFungibleToken(toAddress: AccountId, tokenId: TokenId, amount: number) {
+  async transferFungibleToken(
+    toAddress: AccountId,
+    tokenId: TokenId,
+    amount: number,
+  ) {
     const transferTokenTransaction = new TransferTransaction()
       .addTokenTransfer(tokenId, this.getAccountId(), -amount)
       .addTokenTransfer(tokenId, toAddress.toString(), amount);
@@ -86,9 +108,17 @@ class WalletConnectWallet implements WalletInterface {
     return txResult ? txResult.transactionId : null;
   }
 
-  async transferNonFungibleToken(toAddress: AccountId, tokenId: TokenId, serialNumber: number) {
-    const transferTokenTransaction = new TransferTransaction()
-      .addNftTransfer(tokenId, serialNumber, this.getAccountId(), toAddress);
+  async transferNonFungibleToken(
+    toAddress: AccountId,
+    tokenId: TokenId,
+    serialNumber: number,
+  ) {
+    const transferTokenTransaction = new TransferTransaction().addNftTransfer(
+      tokenId,
+      serialNumber,
+      this.getAccountId(),
+      toAddress,
+    );
 
     const signer = this.getSigner();
     await transferTokenTransaction.freezeWithSigner(signer);
@@ -109,7 +139,12 @@ class WalletConnectWallet implements WalletInterface {
 
   // Purpose: build contract execute transaction and send to wallet for signing and execution
   // Returns: Promise<TransactionId | null>
-  async executeContractFunction(contractId: ContractId, functionName: string, functionParameters: ContractFunctionParameterBuilder, gasLimit: number) {
+  async executeContractFunction(
+    contractId: ContractId,
+    functionName: string,
+    functionParameters: ContractFunctionParameterBuilder,
+    gasLimit: number,
+  ) {
     const tx = new ContractExecuteTransaction()
       .setContractId(contractId)
       .setGas(gasLimit)
@@ -128,7 +163,7 @@ class WalletConnectWallet implements WalletInterface {
       refreshEvent.emit("sync");
     });
   }
-};
+}
 export const walletConnectWallet = new WalletConnectWallet();
 
 // this component will sync the walletconnect state with the context
@@ -143,7 +178,7 @@ export const WalletConnectClient = () => {
       setAccountId(accountId);
       setIsConnected(true);
     } else {
-      setAccountId('');
+      setAccountId("");
       setIsConnected(false);
     }
   }, [setAccountId, setIsConnected]);
@@ -158,7 +193,7 @@ export const WalletConnectClient = () => {
 
     return () => {
       refreshEvent.removeListener("sync", syncWithWalletConnectContext);
-    }
+    };
   }, [syncWithWalletConnectContext]);
   return null;
 };

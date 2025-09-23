@@ -1,15 +1,17 @@
 import { createContext, useState, ReactNode } from "react";
 
 const defaultValue = {
-  accountId: '',
-  setAccountId: (newValue: string) => { },
+  accountId: "",
+  setAccountId: (newValue: string) => {},
   isConnected: false,
-  setIsConnected: (newValue: boolean) => { },
-}
+  setIsConnected: (newValue: boolean) => {},
+};
 
 export const WalletConnectContext = createContext(defaultValue);
 
-export const WalletConnectContextProvider = (props: { children: ReactNode | undefined }) => {
+export const WalletConnectContextProvider = (props: {
+  children: ReactNode | undefined;
+}) => {
   const [accountId, setAccountId] = useState(defaultValue.accountId);
   const [isConnected, setIsConnected] = useState(defaultValue.isConnected);
 
@@ -19,10 +21,10 @@ export const WalletConnectContextProvider = (props: { children: ReactNode | unde
         accountId,
         setAccountId,
         isConnected,
-        setIsConnected
+        setIsConnected,
       }}
     >
       {props.children}
     </WalletConnectContext.Provider>
-  )
-}
+  );
+};

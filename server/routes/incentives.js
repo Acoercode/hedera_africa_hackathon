@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const incentiveService = require('../services/incentiveService');
 const hederaService = require('../services/hederaService');
+const User = require('../models/User');
 
 // GET /api/incentives/rates - Get incentive rates
 router.get('/rates', async (req, res) => {

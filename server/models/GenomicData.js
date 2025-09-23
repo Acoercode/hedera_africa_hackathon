@@ -6,7 +6,7 @@ const genomicDataSchema = new mongoose.Schema({
     type: String,
     required: true,
     index: true,
-    ref: 'Patient'
+    ref: 'User'
   },
   
   // Data identification

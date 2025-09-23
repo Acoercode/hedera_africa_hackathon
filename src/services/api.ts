@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 export interface Patient {
   patientId: string;
@@ -22,6 +23,18 @@ export interface Consent {
   consentNFTTokenId?: string;
   consentNFTSerialNumber?: string;
   consentNFTTransactionId?: string;
+  consentHash?: string;
+  revokedAt?: string;
+  revocationReason?: string;
+  revokedBy?: string;
+  revocationTransactionId?: string;
+  isActive?: boolean;
+  updatedAt?: string;
+  unsignedMintTransaction?: {
+    tokenId: string;
+    consentHash: string;
+    transactionData: string;
+  };
 }
 
 export interface GenomicData {
@@ -38,7 +51,7 @@ export interface GenomicData {
 export interface NFT {
   tokenId: string;
   serialNumber: string;
-  type: 'consent' | 'genomic';
+  type: "consent" | "genomic";
   name: string;
   description: string;
   transactionId: string;
@@ -46,7 +59,7 @@ export interface NFT {
 
 export interface Transaction {
   id: string;
-  type: 'consent_created' | 'data_uploaded' | 'token_received';
+  type: "consent_created" | "data_uploaded" | "token_received";
   amount?: number;
   description: string;
   timestamp: string;
@@ -60,11 +73,14 @@ export interface IncentiveBalance {
 }
 
 class ApiService {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+  ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const config: RequestInit = {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
       ...options,
@@ -72,22 +88,22 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error("API request failed:", error);
       throw error;
     }
   }
 
   // Patient endpoints
   async createPatient(patientData: Partial<Patient>): Promise<Patient> {
-    return this.request<Patient>('/patients', {
-      method: 'POST',
+    return this.request<Patient>("/patients", {
+      method: "POST",
       body: JSON.stringify(patientData),
     });
   }
@@ -98,36 +114,43 @@ class ApiService {
 
   // Consent endpoints
   async createConsent(consentData: Partial<Consent>): Promise<Consent> {
-    return this.request<Consent>('/consent', {
-      method: 'POST',
+    return this.request<Consent>("/consent", {
+      method: "POST",
       body: JSON.stringify(consentData),
     });
   }
 
   async getConsents(patientId?: string): Promise<{ consents: Consent[] }> {
-    const params = patientId ? `?patientId=${patientId}` : '';
+    const params = patientId ? `?patientId=${patientId}` : "";
     return this.request<{ consents: Consent[] }>(`/consent${params}`);
   }
 
-  async getConsentByNFT(tokenId: string, serialNumber: string): Promise<Consent> {
+  async getConsentByNFT(
+    tokenId: string,
+    serialNumber: string,
+  ): Promise<Consent> {
     return this.request<Consent>(`/consent/nft/${tokenId}/${serialNumber}`);
   }
 
-  async verifyConsentNFT(tokenId: string, serialNumber: string, patientId: string): Promise<{
+  async verifyConsentNFT(
+    tokenId: string,
+    serialNumber: string,
+    patientId: string,
+  ): Promise<{
     verification: { valid: boolean; reason?: string };
     consent: Consent | null;
     message: string;
   }> {
-    return this.request('/consent/verify-nft', {
-      method: 'POST',
+    return this.request("/consent/verify-nft", {
+      method: "POST",
       body: JSON.stringify({ tokenId, serialNumber, patientId }),
     });
   }
 
   // Genomic data endpoints
   async uploadGenomicData(formData: FormData): Promise<GenomicData> {
-    return this.request<GenomicData>('/genomic', {
-      method: 'POST',
+    return this.request<GenomicData>("/genomic", {
+      method: "POST",
       headers: {}, // Let browser set Content-Type for FormData
       body: formData,
     });
@@ -137,7 +160,10 @@ class ApiService {
     return this.request<GenomicData>(`/genomic/${dataId}`);
   }
 
-  async getGenomicDataByNFT(tokenId: string, serialNumber: string): Promise<GenomicData> {
+  async getGenomicDataByNFT(
+    tokenId: string,
+    serialNumber: string,
+  ): Promise<GenomicData> {
     return this.request<GenomicData>(`/genomic/nft/${tokenId}/${serialNumber}`);
   }
 
@@ -150,12 +176,47 @@ class ApiService {
     rates: Record<string, number>;
     description: string;
   }> {
-    return this.request('/incentives/rates');
+    return this.request("/incentives/rates");
+  }
+
+  // User lookup and verification endpoints
+  async getUserByHederaAccount(hederaAccountId: string): Promise<{
+    exists: boolean;
+    user?: any;
+  }> {
+    return this.request(`/users/by-hedera-account/${hederaAccountId}`);
+  }
+
+  async searchUserByIHopeId(iHopeId: string): Promise<{
+    found: boolean;
+    user?: {
+      iHopeId: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }> {
+    return this.request(`/users/search/${iHopeId}`);
+  }
+
+  async verifyAndCreateUser(data: {
+    iHopeId: string;
+    dateOfBirth: string;
+    hederaAccountId: string;
+  }): Promise<{
+    success: boolean;
+    user?: any;
+    message?: string;
+  }> {
+    return this.request("/users/verify-and-create", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   // Health check
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    return this.request('/health');
+    return this.request("/health");
   }
 }
 

@@ -27,7 +27,8 @@ const consentSchema = new mongoose.Schema({
       'clinical_trial',
       'data_storage',
       'ai_analysis',
-      'commercial_use'
+      'commercial_use',
+      'genomic_passport'  // New: for genomic passport NFTs
     ],
     required: true
   },
@@ -41,7 +42,7 @@ const consentSchema = new mongoose.Schema({
   // Consent scope
   dataTypes: [{
     type: String,
-    enum: ['whole_genome', 'exome', 'targeted_panel', 'snp_array', 'rna_seq', 'methylation']
+    enum: ['whole_genome', 'exome', 'targeted_panel', 'snp_array', 'rna_seq', 'methylation', 'genomic_passport']
   }],
   
   purposes: [{
@@ -53,7 +54,8 @@ const consentSchema = new mongoose.Schema({
       'population_studies',
       'disease_prediction',
       'ancestry_analysis',
-      'pharmacogenomics'
+      'pharmacogenomics',
+      'data_ownership_proof'  // New: for genomic passport NFTs
     ]
   }],
   

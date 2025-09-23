@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const GenomicData = require('../models/GenomicData');
-const Patient = require('../models/Patient');
 const Consent = require('../models/Consent');
+const User = require('../models/User');
 const hederaService = require('../services/hederaService');
 const incentiveService = require('../services/incentiveService');
 const multer = require('multer');
@@ -122,7 +122,7 @@ router.post('/', upload.single('genomicFile'), async (req, res) => {
     }
 
     // Check if patient exists
-    const patient = await Patient.findOne({ patientId, isActive: true });
+    const patient = await User.findOne({ patientId, isActive: true });
     if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }

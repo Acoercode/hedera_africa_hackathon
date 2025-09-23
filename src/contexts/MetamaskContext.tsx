@@ -1,23 +1,25 @@
 import { createContext, ReactNode, useState } from "react";
 
 const defaultValue = {
-  metamaskAccountAddress: '',
-  setMetamaskAccountAddress: (newValue: string) => { },
-}
+  metamaskAccountAddress: "",
+  setMetamaskAccountAddress: (newValue: string) => {},
+};
 
-export const MetamaskContext = createContext(defaultValue)
+export const MetamaskContext = createContext(defaultValue);
 
-export const MetamaskContextProvider = (props: { children: ReactNode | undefined }) => {
-  const [metamaskAccountAddress, setMetamaskAccountAddress] = useState('')
+export const MetamaskContextProvider = (props: {
+  children: ReactNode | undefined;
+}) => {
+  const [metamaskAccountAddress, setMetamaskAccountAddress] = useState("");
 
   return (
     <MetamaskContext.Provider
       value={{
         metamaskAccountAddress,
-        setMetamaskAccountAddress
+        setMetamaskAccountAddress,
       }}
     >
       {props.children}
     </MetamaskContext.Provider>
-  )
-}
+  );
+};

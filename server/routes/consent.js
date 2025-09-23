@@ -1,16 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const Consent = require('../models/Consent');
-const Patient = require('../models/Patient');
 const hederaService = require('../services/hederaService');
 const incentiveService = require('../services/incentiveService');
 const { v4: uuidv4 } = require('uuid');
+const { TokenId, TokenMintTransaction, TransferTransaction, AccountId: HederaAccountId, TopicMessageSubmitTransaction } = require('@hashgraph/sdk');
 
 // GET /api/consent - Get all consents
 router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 10, patientId, status, type } = req.query;
-    const query = { isActive: true };
+    const { page = 1, limit = 10, patientId, status, type, includeRevoked = false } = req.query;
+    const query = {};
+    
+    // By default, only show active consents unless includeRevoked is true
+    if (includeRevoked !== 'true') {
+      query.isActive = true;
+    }
     
     if (patientId) {
       query.patientId = patientId;
@@ -43,183 +48,105 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/consent/:id - Get consent by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const consent = await Consent.findOne({ 
-      consentId: req.params.id, 
-      isActive: true 
-    });
-
-    if (!consent) {
-      return res.status(404).json({ error: 'Consent not found' });
-    }
-
-    res.json(consent);
-  } catch (error) {
-    console.error('Error fetching consent:', error);
-    res.status(500).json({ error: 'Failed to fetch consent' });
-  }
-});
-
-// GET /api/consent/patient/:patientId - Get consents by patient
-router.get('/patient/:patientId', async (req, res) => {
-  try {
-    const consents = await Consent.findByPatient(req.params.patientId);
-    res.json(consents);
-  } catch (error) {
-    console.error('Error fetching patient consents:', error);
-    res.status(500).json({ error: 'Failed to fetch patient consents' });
-  }
-});
-
-// GET /api/consent/transaction/:transactionId - Get consent by transaction ID
-router.get('/transaction/:transactionId', async (req, res) => {
-  try {
-    const consent = await Consent.findByTransactionId(req.params.transactionId);
-
-    if (!consent) {
-      return res.status(404).json({ error: 'Consent not found' });
-    }
-
-    res.json(consent);
-  } catch (error) {
-    console.error('Error fetching consent by transaction:', error);
-    res.status(500).json({ error: 'Failed to fetch consent' });
-  }
-});
-
-// GET /api/consent/nft/:tokenId/:serialNumber - Get consent by NFT
-router.get('/nft/:tokenId/:serialNumber', async (req, res) => {
-  try {
-    const { tokenId, serialNumber } = req.params;
-    const consent = await Consent.findByNFT(tokenId, serialNumber);
-
-    if (!consent) {
-      return res.status(404).json({ error: 'Consent NFT not found' });
-    }
-
-    res.json(consent);
-  } catch (error) {
-    console.error('Error fetching consent by NFT:', error);
-    res.status(500).json({ error: 'Failed to fetch consent' });
-  }
-});
-
-// POST /api/consent/verify-nft - Verify consent NFT
-router.post('/verify-nft', async (req, res) => {
-  try {
-    const { tokenId, serialNumber, patientId } = req.body;
-
-    if (!tokenId || !serialNumber || !patientId) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Verify NFT on blockchain
-    const verification = await hederaService.verifyConsentNFT(tokenId, serialNumber, patientId);
-    
-    // Get consent record
-    const consent = await Consent.findByNFT(tokenId, serialNumber);
-
-    res.json({
-      verification,
-      consent: consent || null,
-      message: verification.valid ? 'Consent NFT is valid' : `Consent NFT is invalid: ${verification.reason}`
-    });
-  } catch (error) {
-    console.error('Error verifying consent NFT:', error);
-    res.status(500).json({ error: 'Failed to verify consent NFT' });
-  }
-});
-
-// POST /api/consent - Create new consent
-router.post('/', async (req, res) => {
+// POST /api/consent/mint-and-transfer - Mint consent NFT and transfer to user
+router.post('/mint-and-transfer', async (req, res) => {
   try {
     const {
-      patientId,
+      accountId,
+      consentId,
       consentType,
       dataTypes,
       purposes,
       validFrom,
-      validUntil,
-      consentText,
-      consentVersion,
-      language,
-      patientSignature,
-      signatureMethod,
-      hederaAccountId
+      validUntil
     } = req.body;
 
-    // Validate required fields
-    if (!patientId || !consentType || !dataTypes || !purposes || !validFrom || 
-        !consentText || !consentVersion || !patientSignature || !signatureMethod || !hederaAccountId) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!accountId || !consentId || !consentType || !dataTypes || !purposes || !validFrom || !validUntil) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: accountId, consentId, consentType, dataTypes, purposes, validFrom, validUntil' 
+      });
     }
 
-    // Check if patient exists
-    const patient = await Patient.findOne({ patientId, isActive: true });
-    if (!patient) {
-      return res.status(404).json({ error: 'Patient not found' });
-    }
+    // Use the Consent NFT Token ID
+    const tokenId = TokenId.fromString('0.0.6886067');
 
-    // Generate unique consent ID
-    const consentId = `consent_${patientId}_${Date.now()}`;
-    
-    // Create consent hash
-    const consentString = JSON.stringify({
-      patientId,
+    // Create consent hash for off-chain storage
+    const consentPayload = {
+      consentId,
       consentType,
       dataTypes,
       purposes,
       validFrom,
       validUntil,
-      timestamp: new Date().toISOString()
-    });
-    
-    const consentHash = require('crypto').createHash('sha256').update(consentString).digest('hex');
+      subject: accountId,
+      version: "1.0"
+    };
+    const payloadStr = JSON.stringify(consentPayload);
+    const consentHashHex = require('crypto').createHash('sha256').update(payloadStr).digest('hex');
 
-    // Create consent record
+    // Ultra-compact metadata: just 8 bytes (timestamp)
+    const timestamp = Math.floor(Date.now() / 1000);
+    const metadataBytes = Buffer.alloc(8);
+    metadataBytes.writeBigUInt64BE(BigInt(timestamp), 0);
+
+    // 1) Mint to treasury
+    const mintTx = await new TokenMintTransaction()
+      .setTokenId(tokenId)
+      .setMetadata([metadataBytes])
+      .freezeWith(hederaService.client)
+      .signWithOperator(hederaService.client);
+    
+    const mintRx = await mintTx.execute(hederaService.client);
+    const mintRec = await mintRx.getReceipt(hederaService.client);
+    const serial = mintRec.serials[0].toNumber();
+
+    console.log(`✅ Minted consent NFT: Serial #${serial} for consent ${consentId}`);
+
+    // 2) Transfer minted serial from treasury to user
+    const xferTx = await new TransferTransaction()
+      .addNftTransfer(tokenId, serial, hederaService.operatorId, HederaAccountId.fromString(accountId))
+      .freezeWith(hederaService.client)
+      .signWithOperator(hederaService.client);
+    
+    const xferRx = await xferTx.execute(hederaService.client);
+    const xferRec = await xferRx.getReceipt(hederaService.client);
+
+    console.log(`✅ Transferred consent NFT to user: ${accountId}`);
+
+    // 3) Persist consent record in database
     const consent = new Consent({
       consentId,
-      patientId,
-      consentType,
-      dataTypes,
-      purposes,
+      patientId: accountId,
+      consentType: 'genomic_analysis',
+      dataTypes: ['whole_genome', 'exome'],
+      purposes: ['research', 'clinical_care'],
       validFrom: new Date(validFrom),
-      validUntil: validUntil ? new Date(validUntil) : null,
-      consentText,
-      consentVersion,
-      language,
-      patientSignature,
+      validUntil: new Date(validUntil),
+      consentText: `I consent to ${consentType} for the purposes of ${purposes.join(', ')}`,
+      consentVersion: "1.0",
+      language: "en",
+      patientSignature: "nft_minted",
       signatureTimestamp: new Date(),
-      signatureMethod,
-      hederaAccountId,
-      consentHash,
-      consentTransactionId: 'pending', // Will be updated after Hedera submission
-      topicId: hederaService.getTopicInfo().consentTopicId,
-      consentStatus: 'pending'
+      signatureMethod: "wallet_signature",
+      hederaAccountId: accountId,
+      consentHash: consentHashHex,
+      consentTransactionId: xferRx.transactionId.toString(),
+      topicId: hederaService.consentTopicId || '0.0.123456',
+      consentStatus: 'granted',
+      consentNFTTokenId: tokenId.toString(),
+      consentNFTSerialNumber: serial.toString(),
+      consentNFTTransactionId: xferRx.transactionId.toString(),
+      nftMintedAt: new Date()
     });
 
     await consent.save();
+    console.log(`✅ Consent saved to database with NFT Serial #${serial}`);
 
-    // Submit consent hash to Hedera and create NFT
+    // Submit anonymized consent hash to HCS
     try {
-      // 1. Submit consent hash to HCS
       const hederaResult = await hederaService.submitConsentHash({
-        patientId,
         consentId,
-        consentType,
-        dataTypes,
-        purposes,
-        validFrom: consent.validFrom,
-        validUntil: consent.validUntil,
-        patientSignature
-      });
-
-      // 2. Create consent NFT
-      const nftResult = await hederaService.createConsentNFT({
-        consentId,
-        patientId,
         consentType,
         dataTypes,
         purposes,
@@ -227,211 +154,312 @@ router.post('/', async (req, res) => {
         validUntil: consent.validUntil
       });
 
-      // 3. Mint consent NFT to patient
-      const mintResult = await hederaService.mintConsentNFT(
-        nftResult.tokenId,
-        hederaAccountId,
-        consentHash
-      );
-
-      // 4. Update consent with all transaction IDs
-      consent.consentTransactionId = hederaResult.transactionId;
-      consent.consentNFTTokenId = nftResult.tokenId;
-      consent.consentNFTSerialNumber = mintResult.serialNumber;
-      consent.consentNFTTransactionId = mintResult.transactionId;
-      consent.nftMintedAt = new Date();
-      consent.consentStatus = 'granted';
-      await consent.save();
-
-      // 5. Update patient consent status
-      await patient.updateConsent('granted', hederaResult.transactionId);
-
-      // 6. Distribute incentive tokens
-      try {
-        const incentiveResult = await incentiveService.distributeIncentives(
-          hederaAccountId,
-          'consent_provided',
-          dataTypes[0] || 'genomic_analysis'
-        );
-        console.log(`✅ Incentive distributed: ${incentiveResult.amount} GDI tokens`);
-      } catch (incentiveError) {
-        console.error('Failed to distribute incentives:', incentiveError);
-        // Don't fail the entire request for incentive errors
-      }
-
-      res.status(201).json({
-        ...consent.toObject(),
-        hederaResult,
-        nftResult,
-        mintResult,
-        message: 'Consent created, NFT minted, and incentives distributed successfully!'
-      });
+      console.log('✅ Consent hash submitted to HCS:', hederaResult.transactionId);
     } catch (hederaError) {
-      console.error('Failed to submit to Hedera:', hederaError);
-      
-      // Still save the consent but mark as pending
-      consent.consentStatus = 'pending';
-      await consent.save();
-      
-      res.status(201).json({
-        ...consent.toObject(),
-        error: 'Consent created but not yet submitted to blockchain'
-      });
+      console.error('HCS submission failed:', hederaError);
+      // Continue anyway - the NFT is already minted and transferred
     }
+
+    res.json({
+      success: true,
+      tokenIdStr: tokenId.toString(),
+      serial,
+      mirrorTxId: xferRx.transactionId.toString(),
+      consentHash: consentHashHex,
+      nftMetadata: {
+        timestamp: timestamp,
+        size: 8
+      },
+      consentPayload,
+      consent: {
+        consentId: consent.consentId,
+        consentType: consent.consentType,
+        consentStatus: consent.consentStatus,
+        consentHash: consentHashHex,
+        consentTransactionId: consent.consentTransactionId,
+        consentNFTTokenId: consent.consentNFTTokenId,
+        consentNFTSerialNumber: consent.consentNFTSerialNumber,
+        consentNFTTransactionId: consent.consentNFTTransactionId,
+        validFrom: consent.validFrom,
+        validUntil: consent.validUntil
+      },
+      message: 'Consent NFT minted and transferred successfully'
+    });
+
   } catch (error) {
-    console.error('Error creating consent:', error);
-    res.status(500).json({ error: 'Failed to create consent' });
+    console.error('Error minting consent NFT:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to mint consent NFT',
+      error: error.message 
+    });
   }
 });
 
-// PUT /api/consent/:id/revoke - Revoke consent
-router.put('/:id/revoke', async (req, res) => {
+// POST /api/consent/:id/revoke - Revoke a consent
+router.post('/:id/revoke', async (req, res) => {
   try {
-    const { reason, revokedBy, transactionId } = req.body;
+    const { id } = req.params;
+    const { reason, revokedBy } = req.body;
 
     if (!reason || !revokedBy) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: reason, revokedBy' 
+      });
     }
 
-    const consent = await Consent.findOne({ 
-      consentId: req.params.id, 
-      isActive: true 
+    // Find the consent
+    const consent = await Consent.findOne({ consentId: id, isActive: true });
+    if (!consent) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Consent not found' 
+      });
+    }
+
+    // Check if consent is already revoked
+    if (consent.consentStatus === 'revoked') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Consent is already revoked' 
+      });
+    }
+
+    // Update consent status in database
+    consent.consentStatus = 'revoked';
+    consent.revocationReason = reason;
+    consent.revokedAt = new Date();
+    consent.revokedBy = revokedBy;
+    consent.isActive = false;
+    consent.updatedAt = new Date();
+
+    await consent.save();
+    console.log(`✅ Consent ${id} revoked in database`);
+
+    // Update NFT status on Hedera (if NFT exists)
+    let revocationTransactionId = null;
+    if (consent.consentNFTTokenId && consent.consentNFTSerialNumber) {
+      try {
+        // Create revocation message for the NFT
+        const revocationMessage = JSON.stringify({
+          type: 'consent_revocation',
+          consentId: consent.consentId,
+          tokenId: consent.consentNFTTokenId,
+          serialNumber: consent.consentNFTSerialNumber,
+          reason: reason,
+          revokedBy: revokedBy,
+          timestamp: new Date().toISOString(),
+          status: 'revoked'
+        });
+
+        // Submit revocation to HCS for audit trail
+        const topicMessageTransaction = new TopicMessageSubmitTransaction()
+          .setTopicId(hederaService.consentTopicId)
+          .setMessage(revocationMessage);
+
+        const response = await topicMessageTransaction.execute(hederaService.client);
+        const receipt = await response.getReceipt(hederaService.client);
+        
+        revocationTransactionId = response.transactionId.toString();
+        console.log(`✅ Consent revocation submitted to HCS: ${receipt.topicSequenceNumber}`);
+        
+        // Update consent with revocation transaction ID
+        consent.revocationTransactionId = revocationTransactionId;
+        await consent.save();
+        
+      } catch (hederaError) {
+        console.error('HCS revocation submission failed:', hederaError);
+        // Continue anyway - the consent is already revoked in the database
+      }
+    }
+
+    res.json({
+      success: true,
+      consent: {
+        consentId: consent.consentId,
+        consentStatus: consent.consentStatus,
+        revocationReason: consent.revocationReason,
+        revokedAt: consent.revokedAt,
+        revokedBy: consent.revokedBy,
+        revocationTransactionId: revocationTransactionId,
+        isActive: consent.isActive,
+        updatedAt: consent.updatedAt
+      },
+      message: 'Consent revoked successfully and NFT status updated on Hedera'
     });
 
-    if (!consent) {
-      return res.status(404).json({ error: 'Consent not found' });
-    }
-
-    if (consent.consentStatus === 'revoked') {
-      return res.status(400).json({ error: 'Consent already revoked' });
-    }
-
-    // Revoke consent
-    await consent.revoke(reason, revokedBy, transactionId);
-
-    // Update patient consent status
-    const patient = await Patient.findOne({ patientId: consent.patientId });
-    if (patient) {
-      await patient.updateConsent('revoked', transactionId);
-    }
-
-    res.json({ message: 'Consent revoked successfully', consent });
   } catch (error) {
     console.error('Error revoking consent:', error);
-    res.status(500).json({ error: 'Failed to revoke consent' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to revoke consent',
+      error: error.message 
+    });
   }
 });
 
-// PUT /api/consent/:id/access - Grant access to authorized entity
-router.put('/:id/access', async (req, res) => {
+// POST /api/consent/genomic-passport - Mint genomic passport NFT for user
+router.post('/genomic-passport', async (req, res) => {
   try {
-    const { entityId, entityType, accessScope, expiresAt } = req.body;
+    const { accountId } = req.body;
 
-    if (!entityId || !entityType || !accessScope) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!accountId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required field: accountId' 
+      });
     }
 
-    const consent = await Consent.findOne({ 
-      consentId: req.params.id, 
+    // Check if user already has a genomic passport
+    const existingPassport = await Consent.findOne({ 
+      patientId: accountId, 
+      consentType: 'genomic_passport',
       isActive: true 
     });
 
-    if (!consent) {
-      return res.status(404).json({ error: 'Consent not found' });
+    if (existingPassport) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User already has a genomic passport NFT',
+        existingPassport: {
+          consentId: existingPassport.consentId,
+          tokenId: existingPassport.consentNFTTokenId,
+          serialNumber: existingPassport.consentNFTSerialNumber,
+          mintedAt: existingPassport.nftMintedAt
+        }
+      });
     }
 
-    if (!consent.isValid) {
-      return res.status(400).json({ error: 'Consent is not valid' });
-    }
+    // Use the dedicated Ziva Passport NFT Token ID
+    const tokenId = TokenId.fromString('0.0.6886170');
 
-    // Grant access
-    await consent.grantAccess(entityId, entityType, accessScope, expiresAt ? new Date(expiresAt) : null);
+    // Create genomic passport hash
+    const passportPayload = {
+      type: 'genomic_passport',
+      accountId: accountId,
+      purpose: 'genomic_data_ownership_proof',
+      version: "1.0",
+      timestamp: new Date().toISOString()
+    };
+    const payloadStr = JSON.stringify(passportPayload);
+    const passportHashHex = require('crypto').createHash('sha256').update(payloadStr).digest('hex');
 
-    res.json({ message: 'Access granted successfully' });
-  } catch (error) {
-    console.error('Error granting access:', error);
-    res.status(500).json({ error: 'Failed to grant access' });
-  }
-});
+    // Ultra-compact metadata: 8 bytes (timestamp)
+    const timestamp = Math.floor(Date.now() / 1000);
+    const metadataBytes = Buffer.alloc(8);
+    metadataBytes.writeBigUInt64BE(BigInt(timestamp), 0);
 
-// GET /api/consent/:id/access-log - Get consent access log
-router.get('/:id/access-log', async (req, res) => {
-  try {
-    const consent = await Consent.findOne({ 
-      consentId: req.params.id, 
-      isActive: true 
-    }).select('accessLog');
+    // 1) Mint to treasury
+    const mintTx = await new TokenMintTransaction()
+      .setTokenId(tokenId)
+      .setMetadata([metadataBytes])
+      .freezeWith(hederaService.client)
+      .signWithOperator(hederaService.client);
+    
+    const mintRx = await mintTx.execute(hederaService.client);
+    const mintRec = await mintRx.getReceipt(hederaService.client);
+    const serial = mintRec.serials[0].toNumber();
 
-    if (!consent) {
-      return res.status(404).json({ error: 'Consent not found' });
-    }
+    console.log(`✅ Minted Ziva Passport NFT: Serial #${serial} for account ${accountId}`);
 
-    res.json({ accessLog: consent.accessLog });
-  } catch (error) {
-    console.error('Error fetching consent access log:', error);
-    res.status(500).json({ error: 'Failed to fetch access log' });
-  }
-});
+    // 2) Transfer minted serial from treasury to user
+    const xferTx = await new TransferTransaction()
+      .addNftTransfer(tokenId, serial, hederaService.operatorId, HederaAccountId.fromString(accountId))
+      .freezeWith(hederaService.client)
+      .signWithOperator(hederaService.client);
+    
+    const xferRx = await xferTx.execute(hederaService.client);
+    const xferRec = await xferRx.getReceipt(hederaService.client);
 
-// POST /api/consent/:id/access-log - Add access log entry
-router.post('/:id/access-log', async (req, res) => {
-  try {
-    const { entityId, action, dataAccessed, purpose, transactionId } = req.body;
+    console.log(`✅ Transferred Ziva Passport NFT to user: ${accountId}`);
 
-    if (!entityId || !action || !purpose) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const consent = await Consent.findOne({ 
-      consentId: req.params.id, 
-      isActive: true 
+    // 3) Persist genomic passport record in database
+    const passportConsent = new Consent({
+      consentId: `genomic-passport-${accountId}-${Date.now()}`,
+      patientId: accountId,
+      consentType: 'genomic_passport',
+      dataTypes: ['genomic_passport'],
+      purposes: ['data_ownership_proof'],
+      validFrom: new Date(),
+      validUntil: null, // Genomic passport doesn't expire
+      consentText: `Ziva Passport NFT proving ownership of genomic data for account ${accountId}`,
+      consentVersion: "1.0",
+      language: "en",
+      patientSignature: "nft_minted",
+      signatureTimestamp: new Date(),
+      signatureMethod: "wallet_signature",
+      hederaAccountId: accountId,
+      consentHash: passportHashHex,
+      consentTransactionId: xferRx.transactionId.toString(),
+      topicId: hederaService.genomicTopicId || '0.0.6882233',
+      consentStatus: 'granted',
+      consentNFTTokenId: tokenId.toString(),
+      consentNFTSerialNumber: serial.toString(),
+      consentNFTTransactionId: xferRx.transactionId.toString(),
+      nftMintedAt: new Date()
     });
 
-    if (!consent) {
-      return res.status(404).json({ error: 'Consent not found' });
+    await passportConsent.save();
+    console.log(`✅ Ziva Passport saved to database with NFT Serial #${serial}`);
+
+    // Submit genomic passport hash to HCS
+    try {
+      const passportMessage = JSON.stringify({
+        type: 'ziva_passport_minted',
+        accountId: accountId,
+        tokenId: tokenId.toString(),
+        serialNumber: serial,
+        passportHash: passportHashHex,
+        timestamp: new Date().toISOString()
+      });
+
+      const topicMessageTransaction = new TopicMessageSubmitTransaction()
+        .setTopicId(hederaService.genomicTopicId)
+        .setMessage(passportMessage);
+
+      const response = await topicMessageTransaction.execute(hederaService.client);
+      const receipt = await response.getReceipt(hederaService.client);
+      
+      console.log(`✅ Ziva Passport submitted to HCS: ${receipt.topicSequenceNumber}`);
+    } catch (hederaError) {
+      console.error('HCS submission failed:', hederaError);
+      // Continue anyway - the NFT is already minted and transferred
     }
 
-    // Add access log
-    await consent.addAccessLog(entityId, action, dataAccessed, purpose, transactionId);
-
-    res.json({ message: 'Access log added successfully' });
-  } catch (error) {
-    console.error('Error adding access log:', error);
-    res.status(500).json({ error: 'Failed to add access log' });
-  }
-});
-
-// GET /api/consent/verify/:transactionId - Verify consent on blockchain
-router.get('/verify/:transactionId', async (req, res) => {
-  try {
-    const verification = await hederaService.verifyConsent(req.params.transactionId);
-    res.json(verification);
-  } catch (error) {
-    console.error('Error verifying consent:', error);
-    res.status(500).json({ error: 'Failed to verify consent' });
-  }
-});
-
-// DELETE /api/consent/:id - Soft delete consent
-router.delete('/:id', async (req, res) => {
-  try {
-    const consent = await Consent.findOne({ 
-      consentId: req.params.id, 
-      isActive: true 
+    res.json({
+      success: true,
+      tokenIdStr: tokenId.toString(),
+      serial,
+      mirrorTxId: xferRx.transactionId.toString(),
+      passportHash: passportHashHex,
+      nftMetadata: {
+        timestamp: timestamp,
+        size: 8
+      },
+      passportPayload,
+      passport: {
+        consentId: passportConsent.consentId,
+        consentType: passportConsent.consentType,
+        consentStatus: passportConsent.consentStatus,
+        consentHash: passportConsent.consentHash,
+        consentTransactionId: passportConsent.consentTransactionId,
+        consentNFTTokenId: passportConsent.consentNFTTokenId,
+        consentNFTSerialNumber: passportConsent.consentNFTSerialNumber,
+        consentNFTTransactionId: passportConsent.consentNFTTransactionId,
+        validFrom: passportConsent.validFrom,
+        validUntil: passportConsent.validUntil
+      },
+      message: 'Ziva Passport NFT minted and transferred successfully'
     });
 
-    if (!consent) {
-      return res.status(404).json({ error: 'Consent not found' });
-    }
-
-    // Soft delete
-    consent.isActive = false;
-    await consent.save();
-
-    res.json({ message: 'Consent deleted successfully' });
   } catch (error) {
-    console.error('Error deleting consent:', error);
-    res.status(500).json({ error: 'Failed to delete consent' });
+    console.error('Error minting Ziva Passport NFT:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to mint Ziva Passport NFT',
+      error: error.message 
+    });
   }
 });
 

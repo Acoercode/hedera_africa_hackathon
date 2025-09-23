@@ -107,9 +107,8 @@ class HederaService {
     }
 
     try {
-      // Create consent hash
-      const consentString = JSON.stringify({
-        patientId: consentData.patientId,
+      // Create anonymized consent hash (NO PII on ledger)
+      const anonymizedConsentString = JSON.stringify({
         consentType: consentData.consentType,
         dataTypes: consentData.dataTypes,
         purposes: consentData.purposes,
@@ -118,16 +117,15 @@ class HederaService {
         timestamp: new Date().toISOString()
       });
 
-      const consentHash = crypto.createHash('sha256').update(consentString).digest('hex');
+      const consentHash = crypto.createHash('sha256').update(anonymizedConsentString).digest('hex');
       
-      // Create HCS message
+      // Create anonymized HCS message (NO PII on ledger)
       const message = JSON.stringify({
         type: 'consent_hash',
-        patientId: consentData.patientId,
-        consentId: consentData.consentId,
+        consentId: consentData.consentId, // This is anonymized: consent_<hash>_<timestamp>
         hash: consentHash,
-        timestamp: new Date().toISOString(),
-        signature: consentData.patientSignature
+        timestamp: new Date().toISOString()
+        // Removed: patientId, signature (PII)
       });
 
       // Submit to Hedera Consensus Service
@@ -138,7 +136,7 @@ class HederaService {
       const response = await topicMessageTransaction.execute(this.client);
       const receipt = await response.getReceipt(this.client);
       
-      console.log(`✅ Consent hash submitted to Hedera: ${receipt.topicSequenceNumber}`);
+      console.log(`✅ Anonymized consent hash submitted to Hedera: ${receipt.topicSequenceNumber}`);
       
       return {
         transactionId: response.transactionId.toString(),
@@ -267,7 +265,7 @@ class HederaService {
     try {
       const tokenCreateTransaction = new TokenCreateTransaction()
         .setTokenName(`Consent-${consentData.consentId}`)
-        .setTokenSymbol(`CONSENT-${consentData.patientId}`)
+        .setTokenSymbol(`CONSENT-NFT`) // Anonymized - no patient ID
         .setTokenType(TokenType.NonFungibleUnique)
         .setDecimals(0)
         .setInitialSupply(0)
@@ -275,12 +273,14 @@ class HederaService {
         .setSupplyType(TokenSupplyType.Finite)
         .setMaxSupply(1)
         .setTokenMemo(JSON.stringify({
-          patientId: consentData.patientId,
+          // Anonymized memo - NO PII on ledger
+          consentId: consentData.consentId, // Already anonymized
           consentType: consentData.consentType,
           dataTypes: consentData.dataTypes,
           purposes: consentData.purposes,
           validFrom: consentData.validFrom,
           validUntil: consentData.validUntil
+          // Removed: patientId (PII)
         }));
 
       const response = await tokenCreateTransaction.execute(this.client);
@@ -298,8 +298,8 @@ class HederaService {
     }
   }
 
-  // Mint consent NFT to patient
-  async mintConsentNFT(tokenId, patientAccountId, consentHash) {
+  // Mint consent NFT to patient (requires wallet signing)
+  async mintConsentNFT(tokenId, patientAccountId, consentHash, userWalletSigner = null) {
     if (!this.initialized) {
       throw new Error('Hedera service not initialized');
     }
@@ -309,7 +309,18 @@ class HederaService {
         .setTokenId(tokenId)
         .setMetadata([Buffer.from(consentHash, 'hex')]);
 
-      const response = await tokenMintTransaction.execute(this.client);
+      let response;
+      
+      if (userWalletSigner) {
+        // User signs the transaction with their wallet
+        console.log('🔐 User wallet signing NFT mint transaction...');
+        response = await userWalletSigner(tokenMintTransaction);
+      } else {
+        // Fallback to operator signing (for testing)
+        console.log('⚠️ Using operator signing (should use user wallet in production)');
+        response = await tokenMintTransaction.execute(this.client);
+      }
+      
       const receipt = await response.getReceipt(this.client);
       
       console.log(`✅ Minted consent NFT: ${receipt.serials[0].toString()}`);
@@ -324,6 +335,15 @@ class HederaService {
     }
   }
 
+  // Create unsigned transaction for user wallet signing
+  createUnsignedConsentNFTMint(tokenId, consentHash) {
+    const tokenMintTransaction = new TokenMintTransaction()
+      .setTokenId(tokenId)
+      .setMetadata([Buffer.from(consentHash, 'hex')]);
+    
+    return tokenMintTransaction;
+  }
+
   // Create genomic data NFT
   async createGenomicDataNFT(genomicData) {
     if (!this.initialized) {
@@ -333,7 +353,7 @@ class HederaService {
     try {
       const tokenCreateTransaction = new TokenCreateTransaction()
         .setTokenName(`Genome-${genomicData.dataId}`)
-        .setTokenSymbol(`GENOME-${genomicData.patientId}`)
+        .setTokenSymbol(`GENOME-NFT`) // Anonymized - no patient ID
         .setTokenType(TokenType.NonFungibleUnique)
         .setDecimals(0)
         .setInitialSupply(0)
@@ -341,11 +361,12 @@ class HederaService {
         .setSupplyType(TokenSupplyType.Finite)
         .setMaxSupply(1)
         .setTokenMemo(JSON.stringify({
-          patientId: genomicData.patientId,
+          // Anonymized memo - NO PII on ledger
+          dataId: genomicData.dataId, // Already anonymized
           dataType: genomicData.dataType,
           fileHash: genomicData.fileHash,
-          encryptionKey: genomicData.encryptionKey,
           accessLevel: genomicData.accessLevel
+          // Removed: patientId, encryptionKey (PII)
         }));
 
       const response = await tokenCreateTransaction.execute(this.client);

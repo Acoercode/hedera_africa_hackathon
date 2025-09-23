@@ -1,12 +1,12 @@
-import React, { useState, useContext } from 'react';
-import CssBaseline from '@mui/material/CssBaseline';
-import { ThemeProvider } from '@mui/material';
-import { AllWalletsProvider } from './services/wallets/AllWalletsProvider';
-import ZivaHealthApp from './components/ZivaHealthApp';
-import AuthPage from './components/AuthPage';
-import { theme } from './theme';
-import { WalletConnectContext } from './contexts/WalletConnectContext';
-import { MetamaskContext } from './contexts/MetamaskContext';
+import React, { useState, useContext } from "react";
+import CssBaseline from "@mui/material/CssBaseline";
+import { ThemeProvider } from "@mui/material";
+import { AllWalletsProvider } from "./services/wallets/AllWalletsProvider";
+import ZivaHealthApp from "./components/ZivaHealthApp";
+import AuthPage from "./components/AuthPage";
+import { theme } from "./theme";
+import { WalletConnectContext } from "./contexts/WalletConnectContext";
+import { MetamaskContext } from "./contexts/MetamaskContext";
 import "./App.css";
 
 const AppContent: React.FC = () => {
@@ -19,10 +19,10 @@ const AppContent: React.FC = () => {
   };
 
   const handleLogout = () => {
-    walletConnectContext.setAccountId('');
+    walletConnectContext.setAccountId("");
     walletConnectContext.setIsConnected(false);
-    metamaskContext.setMetamaskAccountAddress('');
-    
+    metamaskContext.setMetamaskAccountAddress("");
+
     setIsAuthenticated(false);
   };
 

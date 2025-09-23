@@ -4,7 +4,6 @@ import { openWalletConnectModal } from "../services/wallets/walletconnect/wallet
 import MetamaskLogo from "../assets/metamask-logo.svg";
 import WalletConnectLogo from "../assets/walletconnect-logo.svg";
 
-
 interface WalletSelectionDialogProps {
   open: boolean;
   setOpen: (value: boolean) => void;
@@ -17,39 +16,43 @@ export const WalletSelectionDialog = (props: WalletSelectionDialogProps) => {
   return (
     <Dialog onClose={onClose} open={open} maxWidth="sm" fullWidth>
       <Box sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>
+        <Typography variant="h6" sx={{ mb: 3, textAlign: "center" }}>
           Choose Your Wallet
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: 3, textAlign: "center" }}
+        >
           Select your preferred wallet to connect to Ziva Health
         </Typography>
-        
+
         <Stack gap={2}>
           <Button
             variant="outlined"
             size="large"
             onClick={() => {
-              openWalletConnectModal()
+              openWalletConnectModal();
               setOpen(false);
             }}
-            sx={{ 
+            sx={{
               py: 2,
-              display: 'flex',
-              alignItems: 'center',
+              display: "flex",
+              alignItems: "center",
               gap: 2,
-              justifyContent: 'flex-start'
+              justifyContent: "flex-start",
             }}
           >
             <img
               src={WalletConnectLogo}
-              alt='walletconnect logo'
+              alt="walletconnect logo"
               style={{
                 width: 32,
-                height: 32
+                height: 32,
               }}
             />
-            <Box sx={{ textAlign: 'left' }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+            <Box sx={{ textAlign: "left" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
                 WalletConnect
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -57,7 +60,7 @@ export const WalletSelectionDialog = (props: WalletSelectionDialogProps) => {
               </Typography>
             </Box>
           </Button>
-          
+
           <Button
             variant="outlined"
             size="large"
@@ -65,24 +68,24 @@ export const WalletSelectionDialog = (props: WalletSelectionDialogProps) => {
               connectToMetamask();
               setOpen(false);
             }}
-            sx={{ 
+            sx={{
               py: 2,
-              display: 'flex',
-              alignItems: 'center',
+              display: "flex",
+              alignItems: "center",
               gap: 2,
-              justifyContent: 'flex-start'
+              justifyContent: "flex-start",
             }}
           >
             <img
               src={MetamaskLogo}
-              alt='metamask logo'
+              alt="metamask logo"
               style={{
                 width: 32,
-                height: 32
+                height: 32,
               }}
             />
-            <Box sx={{ textAlign: 'left' }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+            <Box sx={{ textAlign: "left" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
                 MetaMask
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -94,4 +97,4 @@ export const WalletSelectionDialog = (props: WalletSelectionDialogProps) => {
       </Box>
     </Dialog>
   );
-}
+};

@@ -1,4 +1,4 @@
-import { useContext } from "react"
+import { useContext } from "react";
 import { MetamaskContext } from "../../contexts/MetamaskContext";
 import { WalletConnectContext } from "../../contexts/WalletConnectContext";
 import { metamaskWallet } from "./metamask/metamaskClient";
@@ -14,17 +14,17 @@ export const useWalletInterface = () => {
   if (metamaskCtx.metamaskAccountAddress) {
     return {
       accountId: metamaskCtx.metamaskAccountAddress,
-      walletInterface: metamaskWallet
+      walletInterface: metamaskWallet,
     };
   } else if (walletConnectCtx.accountId) {
     return {
       accountId: walletConnectCtx.accountId,
-      walletInterface: walletConnectWallet
-    }
+      walletInterface: walletConnectWallet,
+    };
   } else {
     return {
       accountId: null,
-      walletInterface: null
+      walletInterface: null,
     };
   }
-}
+};
