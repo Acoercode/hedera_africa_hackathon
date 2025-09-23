@@ -51,19 +51,25 @@ export interface GenomicData {
 export interface NFT {
   tokenId: string;
   serialNumber: string;
-  type: "consent" | "genomic";
+  type: "consent" | "genomic" | "passport";
   name: string;
   description: string;
   transactionId: string;
+  status?: string;
+  validFrom?: string;
+  validUntil?: string;
+  revokedAt?: string;
+  revocationReason?: string;
 }
 
 export interface Transaction {
   id: string;
-  type: "consent_created" | "data_uploaded" | "token_received";
+  type: string;
   amount?: number;
   description: string;
   timestamp: string;
   transactionId: string;
+  activityType?: string;
 }
 
 export interface IncentiveBalance {

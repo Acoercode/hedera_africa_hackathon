@@ -16,24 +16,15 @@ import {
   CircularProgress,
 } from "@mui/material";
 import {
-  Token as TokenIcon,
   Image as NFTIcon,
-  History as HistoryIcon,
   CheckCircle as CheckIcon,
-  Error as ErrorIcon,
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
-import {
-  apiService,
-  NFT,
-  Transaction,
-  IncentiveBalance,
-} from "../services/api";
+import { apiService, NFT, IncentiveBalance } from "../services/api";
 
 const WalletTab: React.FC = () => {
   const { walletInterface, accountId } = useWalletInterface();
   const [nfts, setNfts] = useState<NFT[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [tokenBalance, setTokenBalance] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,39 +52,47 @@ const WalletTab: React.FC = () => {
         setTokenBalance(0);
       }
 
-      // For now, use mock data since we don't have a full patient setup
-      // In a real app, you'd load actual NFTs and transactions from the API
-      const mockNFTs: NFT[] = [
-        {
-          tokenId: "0.0.6882253",
-          serialNumber: "1",
-          type: "consent",
-          name: "Genomic Analysis Consent",
-          description: "Consent for whole genome analysis and research",
-          transactionId: "0.0.5223762@1758516343.958531342",
-        },
-      ];
+      // Load real consent and passport NFTs
+      try {
+        const consentsResponse = await fetch(
+          `http://localhost:5000/api/consent?patientId=${accountId}&includeRevoked=true`,
+        );
+        if (consentsResponse.ok) {
+          const consentsData = await consentsResponse.json();
+          const realNFTs: NFT[] = consentsData.consents
+            .filter(
+              (consent: any) =>
+                consent.consentNFTTokenId && consent.consentNFTSerialNumber,
+            )
+            .map((consent: any) => ({
+              tokenId: consent.consentNFTTokenId,
+              serialNumber: consent.consentNFTSerialNumber,
+              type:
+                consent.consentType === "genomic_passport"
+                  ? "passport"
+                  : "consent",
+              name:
+                consent.consentType === "genomic_passport"
+                  ? "Ziva Passport"
+                  : "Consent NFT",
+              description:
+                consent.consentType === "genomic_passport"
+                  ? "Genomic data ownership proof"
+                  : `Consent for ${consent.consentType}`,
+              transactionId: consent.consentNFTTransactionId,
+              status: consent.consentStatus,
+              validFrom: consent.validFrom,
+              validUntil: consent.validUntil,
+              revokedAt: consent.revokedAt,
+              revocationReason: consent.revocationReason,
+            }));
+          setNfts(realNFTs);
+        }
+      } catch (err) {
+        console.log("Could not load NFTs:", err);
+        setNfts([]);
+      }
 
-      const mockTransactions: Transaction[] = [
-        {
-          id: "1",
-          type: "consent_created",
-          description: "Consent NFT created",
-          timestamp: "2024-01-15T10:30:00Z",
-          transactionId: "0.0.5223762@1758516343.958531342",
-        },
-        {
-          id: "2",
-          type: "token_received",
-          amount: 100,
-          description: "Received 100 GDI tokens for consent",
-          timestamp: "2024-01-15T10:31:00Z",
-          transactionId: "0.0.5223762@1758516344.123456789",
-        },
-      ];
-
-      setNfts(mockNFTs);
-      setTransactions(mockTransactions);
       setLoading(false);
     } catch (err) {
       setError("Failed to load wallet data");
@@ -101,25 +100,15 @@ const WalletTab: React.FC = () => {
     }
   };
 
-  const getTransactionIcon = (type: string) => {
-    switch (type) {
-      case "consent_created":
-        return <CheckIcon color="success" />;
-      case "data_uploaded":
-        return <NFTIcon color="primary" />;
-      case "token_received":
-        return <TokenIcon color="warning" />;
-      default:
-        return <HistoryIcon />;
-    }
-  };
-
   const getNFTIcon = (type: string) => {
-    return type === "consent" ? (
-      <CheckIcon color="success" />
-    ) : (
-      <NFTIcon color="primary" />
-    );
+    switch (type) {
+      case "consent":
+        return <CheckIcon color="success" />;
+      case "passport":
+        return <NFTIcon color="primary" />;
+      default:
+        return <NFTIcon color="inherit" />;
+    }
   };
 
   // This component assumes wallet is already connected (handled by AuthPage)
@@ -131,7 +120,7 @@ const WalletTab: React.FC = () => {
         </Typography>
 
         <Card sx={{ p: 3, textAlign: "center" }}>
-          <ErrorIcon sx={{ fontSize: 64, color: "error.main", mb: 2 }} />
+          <NFTIcon sx={{ fontSize: 64, color: "error.main", mb: 2 }} />
           <Typography variant="h6" sx={{ mb: 2 }}>
             Wallet Not Connected
           </Typography>
@@ -215,11 +204,34 @@ const WalletTab: React.FC = () => {
         ) : nfts.length > 0 ? (
           <List>
             {nfts.map((nft, index) => (
-              <React.Fragment key={nft.tokenId}>
+              <React.Fragment key={`${nft.tokenId}-${nft.serialNumber}`}>
                 <ListItem>
                   <ListItemIcon>{getNFTIcon(nft.type)}</ListItemIcon>
                   <ListItemText
-                    primary={nft.name}
+                    primary={
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <Typography variant="body1">{nft.name}</Typography>
+                        <Chip
+                          label={
+                            nft.status === "granted"
+                              ? "Active"
+                              : nft.status === "revoked"
+                                ? "Revoked"
+                                : nft.status
+                          }
+                          color={
+                            nft.status === "granted"
+                              ? "success"
+                              : nft.status === "revoked"
+                                ? "error"
+                                : "default"
+                          }
+                          size="small"
+                        />
+                      </Box>
+                    }
                     secondary={
                       <Box>
                         <Typography variant="body2" color="text.secondary">
@@ -228,6 +240,30 @@ const WalletTab: React.FC = () => {
                         <Typography variant="caption" color="text.secondary">
                           Token ID: {nft.tokenId} | Serial: {nft.serialNumber}
                         </Typography>
+                        {nft.validFrom && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                          >
+                            Valid:{" "}
+                            {new Date(nft.validFrom).toLocaleDateString()}
+                            {nft.validUntil &&
+                              ` - ${new Date(nft.validUntil).toLocaleDateString()}`}
+                          </Typography>
+                        )}
+                        {nft.revokedAt && (
+                          <Typography
+                            variant="caption"
+                            color="error"
+                            display="block"
+                          >
+                            Revoked:{" "}
+                            {new Date(nft.revokedAt).toLocaleDateString()}
+                            {nft.revocationReason &&
+                              ` - ${nft.revocationReason}`}
+                          </Typography>
+                        )}
                       </Box>
                     }
                   />
@@ -247,63 +283,27 @@ const WalletTab: React.FC = () => {
         )}
       </Card>
 
-      {/* Transaction History */}
-      <Card sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Recent Transactions
+      {/* Info Card */}
+      <Card
+        sx={{ p: 2, mb: 2, bgcolor: "info.light", color: "info.contrastText" }}
+      >
+        <Typography variant="body2" sx={{ textAlign: "center" }}>
+          💡 <strong>Tip:</strong> View your complete transaction history and
+          activity log in the <strong>Activity</strong> tab
         </Typography>
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-            <CircularProgress />
-          </Box>
-        ) : transactions.length > 0 ? (
-          <List>
-            {transactions.map((tx, index) => (
-              <React.Fragment key={tx.id}>
-                <ListItem>
-                  <ListItemIcon>{getTransactionIcon(tx.type)}</ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography variant="body1">
-                          {tx.description}
-                        </Typography>
-                        {tx.amount && (
-                          <Chip
-                            label={`+${tx.amount} GDI`}
-                            color="success"
-                            size="small"
-                          />
-                        )}
-                      </Box>
-                    }
-                    secondary={
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(tx.timestamp).toLocaleString()}
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-                {index < transactions.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
-        ) : (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ textAlign: "center", p: 2 }}
-          >
-            No transactions yet
-          </Typography>
-        )}
       </Card>
+
+      {/* Refresh Button */}
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+        <Button
+          variant="outlined"
+          onClick={loadUserData}
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} /> : undefined}
+        >
+          {loading ? "Refreshing..." : "Refresh Wallet Data"}
+        </Button>
+      </Box>
     </Box>
   );
 };

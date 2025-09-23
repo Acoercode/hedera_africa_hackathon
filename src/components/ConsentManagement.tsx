@@ -675,7 +675,9 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                         variant="subtitle2"
                         sx={{ fontWeight: "bold", color: "text.primary" }}
                       >
-                        Consent NFT
+                        {consent.consentType === "genomic_passport"
+                          ? "Ziva Passport NFT"
+                          : "Consent NFT"}
                       </Typography>
                     </Box>
                     <Typography variant="body2" color="text.secondary">

@@ -90,64 +90,6 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
     }
   };
 
-  const createTestActivity = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const activityTypes = [
-        "consent",
-        "data",
-        "reward",
-        "security",
-        "ai",
-        "sharing",
-      ];
-      const randomType =
-        activityTypes[Math.floor(Math.random() * activityTypes.length)];
-
-      const activityData = {
-        userId: accountId,
-        activityName: `${randomType}_test`,
-        activityDescription: `Test ${randomType} activity created at ${new Date().toLocaleString()}`,
-        activityType: randomType,
-        metadata: {
-          test: true,
-          timestamp: new Date().toISOString(),
-        },
-      };
-
-      const response = await fetch(
-        "http://localhost:5000/api/activities/create",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(activityData),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Reload activities to show the new one
-        await loadActivities();
-      } else {
-        throw new Error(data.message || "Failed to create test activity");
-      }
-    } catch (err) {
-      setError("Failed to create test activity");
-      console.error("Error creating test activity:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const getActivityIcon = (type: string) => {
     switch (type) {
       case "consent":
@@ -156,12 +98,8 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
         return <UploadIcon color="primary" />;
       case "reward":
         return <StarIcon color="secondary" />;
-      case "security":
-        return <SecurityIcon color="warning" />;
       case "ai":
         return <ScienceIcon color="info" />;
-      case "sharing":
-        return <ShareIcon color="success" />;
       default:
         return <HistoryIcon color="action" />;
     }
@@ -175,12 +113,8 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
         return "primary";
       case "reward":
         return "secondary";
-      case "security":
-        return "warning";
       case "ai":
         return "info";
-      case "sharing":
-        return "success";
       default:
         return "default";
     }
@@ -232,14 +166,6 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
           Activity & History
         </Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={createTestActivity}
-            disabled={loading}
-          >
-            Create Test Activity
-          </Button>
           <IconButton
             onClick={loadActivities}
             disabled={loading}
@@ -274,9 +200,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
           <Tab label="Consent" />
           <Tab label="Data" />
           <Tab label="Rewards" />
-          <Tab label="Security" />
           <Tab label="AI" />
-          <Tab label="Sharing" />
         </Tabs>
       </Paper>
 
