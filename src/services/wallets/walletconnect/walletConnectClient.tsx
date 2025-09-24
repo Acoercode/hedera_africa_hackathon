@@ -39,8 +39,8 @@ const hederaClient = Client.forName(hederaNetwork);
 // Adapted from walletconnect dapp example:
 // https://github.com/hashgraph/hedera-wallet-connect/blob/main/src/examples/typescript/dapp/main.ts#L87C1-L101C4
 const metadata: SignClientTypes.Metadata = {
-  name: "Hedera CRA Template",
-  description: "Hedera CRA Template",
+  name: "RDZ Health",
+  description: "RDZ Health - your data, on your terms",
   url: window.location.origin,
   icons: [window.location.origin + "/logo192.png"],
 };

@@ -122,7 +122,13 @@ router.post('/verify-and-create', async (req, res) => {
     if (genomicDOB !== providedDOB) {
       return res.json({
         success: false,
-        message: 'Date of birth does not match the one in our genomic data records'
+        message: 'Date of birth does not match the one in our genomic data records',
+        debug: {
+          genomicDOB,
+          providedDOB,
+          genomicRecordDOB: genomicRecord.dob,
+          providedDateOfBirth: dateOfBirth
+        }
       });
     }
     

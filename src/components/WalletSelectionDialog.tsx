@@ -24,7 +24,7 @@ export const WalletSelectionDialog = (props: WalletSelectionDialogProps) => {
           color="text.secondary"
           sx={{ mb: 3, textAlign: "center" }}
         >
-          Select your preferred wallet to connect to Ziva Health
+          Select your preferred wallet to connect to RDZ Health
         </Typography>
 
         <Stack gap={2}>

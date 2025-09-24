@@ -7,12 +7,17 @@ import AuthPage from "./components/AuthPage";
 import { theme } from "./theme";
 import { WalletConnectContext } from "./contexts/WalletConnectContext";
 import { MetamaskContext } from "./contexts/MetamaskContext";
+import { UserProvider } from "./contexts/UserContext";
 import "./App.css";
 
 const AppContent: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const walletConnectContext = useContext(WalletConnectContext);
   const metamaskContext = useContext(MetamaskContext);
+
+  // Get the current account ID from either wallet context
+  const currentAccountId =
+    walletConnectContext.accountId || metamaskContext.metamaskAccountAddress;
 
   const handleAuthSuccess = () => {
     setIsAuthenticated(true);
@@ -30,7 +35,9 @@ const AppContent: React.FC = () => {
     <>
       <CssBaseline />
       {isAuthenticated ? (
-        <ZivaHealthApp onLogout={handleLogout} />
+        <UserProvider accountId={currentAccountId}>
+          <ZivaHealthApp onLogout={handleLogout} />
+        </UserProvider>
       ) : (
         <AuthPage onAuthSuccess={handleAuthSuccess} />
       )}

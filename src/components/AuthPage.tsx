@@ -23,6 +23,7 @@ import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { WalletSelectionDialog } from "./WalletSelectionDialog";
 import AccountLookupFlow from "./AccountLookupFlow";
 import { apiService } from "../services/api";
+import rdzLogo from "../assets/RDZ Health.png";
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
@@ -86,7 +87,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     {
       icon: <WalletIcon sx={{ fontSize: 40, color: "primary.main" }} />,
       title: "Earn Tokens",
-      description: "Get rewarded with GDI tokens for data sharing",
+      description: "Get rewarded with RDZ tokens for data sharing",
     },
   ];
 
@@ -121,28 +122,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         <CardContent sx={{ p: 4 }}>
           {/* Header */}
           <Box sx={{ textAlign: "center", mb: 4 }}>
-            <Avatar
-              sx={{
-                bgcolor: "primary.main",
-                width: 80,
-                height: 80,
-                mx: "auto",
-                mb: 2,
-                boxShadow: "0 8px 16px rgba(63, 55, 201, 0.3)",
-              }}
-            >
-              <ScienceIcon sx={{ fontSize: 40 }} />
-            </Avatar>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: "bold",
-                color: "primary.main",
-                mb: 1,
-              }}
-            >
-              Ziva Health
-            </Typography>
+            <img
+              src={rdzLogo}
+              alt="RDZ Health"
+              width={"100%"}
+              height={"100%"}
+            />
             <Typography
               variant="h6"
               sx={{
@@ -209,7 +194,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               {/* Features */}
               <Divider sx={{ my: 3 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Why Choose Ziva Health?
+                  Why Choose RDZ Health?
                 </Typography>
               </Divider>
 
@@ -255,7 +240,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           {/* Footer */}
           <Box sx={{ textAlign: "center", mt: 4 }}>
             <Typography variant="caption" color="text.secondary">
-              Powered by Hedera Hashgraph • Built for Healthcare Innovation
+              Powered by Hedera Hashgraph • Built by Acoer for Healthcare
+              Innovation
             </Typography>
           </Box>
         </CardContent>

@@ -69,11 +69,11 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
     {
       consentId: "genomic-passport",
       consentType: "genomic_passport", // New genomic passport type
-      name: "Ziva Passport",
+      name: "RDZ Passport",
       description:
-        "Create your Ziva Passport NFT proving ownership of your genomic data",
+        "Create your RDZ Passport NFT proving ownership of your genomic data",
       detailedDescription:
-        "This creates your unique Ziva Passport NFT that serves as proof of ownership of your genomic data. Your Ziva Passport acts as an identity badge that proves you have genomic data stored and controlled off-chain. The NFT does not contain your actual genomic data, just cryptographic proof of ownership.",
+        "This creates your unique RDZ Passport NFT that serves as proof of ownership of your genomic data. Your RDZ Passport acts as an identity badge that proves you have genomic data stored and controlled off-chain. The NFT does not contain your actual genomic data, just cryptographic proof of ownership.",
       dataTypes: ["genomic_passport"], // Use valid enum values
       purposes: ["data_ownership_proof"], // Use valid enum values
       defaultStatus: "pending",
@@ -98,8 +98,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
       const data = await response.json();
       const fetchedConsents = data.consents || [];
-
-      console.log("Fetched consents:", fetchedConsents);
 
       // Merge with predefined types, prioritizing fetched status
       const mergedConsents = predefinedConsentTypes.map((predefined) => {
@@ -147,7 +145,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         };
       });
 
-      console.log("Merged consents:", mergedConsents);
       setConsents(mergedConsents);
     } catch (err) {
       setError("Failed to load consents");
@@ -180,7 +177,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
   };
 
   const handleAcceptConsent = async () => {
-    console.log("handleAcceptConsent", selectedConsent);
     if (!selectedConsent) return;
 
     try {
@@ -203,7 +199,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         await logPassportActivity(selectedConsent, "created");
 
         setSuccess(
-          `Ziva Passport NFT ${passportResult.tokenIdStr}#${passportResult.serial} created successfully.`,
+          `RDZ Passport NFT ${passportResult.tokenIdStr}#${passportResult.serial} created successfully.`,
         );
 
         // Reload consents to reflect changes
@@ -247,18 +243,18 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         );
       }
 
-      // Use native HTS NFT flow for Ziva Passport
+      // Use native HTS NFT flow for RDZ Passport
       const { TokenId } = await import("@hashgraph/sdk");
       const passportTokenId = TokenId.fromString("0.0.6886170");
 
-      console.log("📱 Wallet should now open for Ziva Passport creation...");
-      console.log("📋 Ziva Passport creation details:", {
+      console.log("📱 Wallet should now open for RDZ Passport creation...");
+      console.log("📋 RDZ Passport creation details:", {
         tokenId: passportTokenId.toString(),
-        purpose: "Create Ziva Passport - Genomic Data Ownership Proof",
+        purpose: "Create RDZ Passport - Genomic Data Ownership Proof",
         type: "genomic_passport",
         description:
-          "Create your unique Ziva Passport NFT that proves ownership of your genomic data",
-        action: "Ziva Passport Creation (Token Association Required)",
+          "Create your unique RDZ Passport NFT that proves ownership of your genomic data",
+        action: "RDZ Passport Creation (Token Association Required)",
       });
 
       const associationTransactionId =
@@ -462,17 +458,17 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       const getActionDescription = (action: string) => {
         switch (action) {
           case "created":
-            return "Created Ziva Passport for genomic data ownership";
+            return "Created RDZ Passport for genomic data ownership";
           case "revoked":
-            return "Revoked Ziva Passport for genomic data ownership";
+            return "Revoked RDZ Passport for genomic data ownership";
           default:
-            return "Updated Ziva Passport for genomic data ownership";
+            return "Updated RDZ Passport for genomic data ownership";
         }
       };
 
       const activityData = {
         userId: accountId,
-        activityName: `ziva_passport_${action}`,
+        activityName: `rdz_passport_${action}`,
         activityDescription: getActionDescription(action),
         activityType: "data", // Use 'data' type for genomic passport activities
         metadata: {
@@ -676,7 +672,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                         sx={{ fontWeight: "bold", color: "text.primary" }}
                       >
                         {consent.consentType === "genomic_passport"
-                          ? "Ziva Passport NFT"
+                          ? "RDZ Passport NFT"
                           : "Consent NFT"}
                       </Typography>
                     </Box>
@@ -958,16 +954,16 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
               {selectedConsent?.consentType === "genomic_passport" ? (
                 <Alert severity="info" sx={{ mb: 2 }}>
                   <Typography variant="body2">
-                    <strong>Ziva Passport Creation:</strong> This will create
-                    your unique Ziva Passport NFT that serves as proof of
-                    ownership of your genomic data. Your Ziva Passport acts as
-                    an identity badge that proves you have genomic data stored
-                    and controlled off-chain. The NFT does not contain your
-                    actual genomic data, just cryptographic proof of ownership.
+                    <strong>RDZ Passport Creation:</strong> This will create
+                    your unique RDZ Passport NFT that serves as proof of
+                    ownership of your genomic data. Your RDZ Passport acts as an
+                    identity badge that proves you have genomic data stored and
+                    controlled off-chain. The NFT does not contain your actual
+                    genomic data, just cryptographic proof of ownership.
                     <br />
                     <br />
                     <strong>Wallet Signing Required:</strong> You will need to
-                    sign a "Ziva Passport Creation" transaction (Token ID:
+                    sign a "RDZ Passport Creation" transaction (Token ID:
                     0.0.6886170) to create your genomic passport.
                   </Typography>
                 </Alert>
@@ -988,8 +984,8 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                     <strong>Please check your wallet!</strong> A transaction has
                     been sent to your connected wallet.
                     {selectedConsent?.consentType === "genomic_passport"
-                      ? 'The transaction will show "Ziva Passport Creation" (Token ID: 0.0.6886170) for your genomic passport. Please approve to complete the passport creation process.'
-                      : 'The transaction will show "Ziva Consent" (Token ID: 0.0.6886067) for the consent NFT. Please approve to complete the consent process.'}
+                      ? 'The transaction will show "RDZ Passport Creation" (Token ID: 0.0.6886170) for your genomic passport. Please approve to complete the passport creation process.'
+                      : 'The transaction will show "RDZ Consent" (Token ID: 0.0.6886067) for the consent NFT. Please approve to complete the consent process.'}
                   </Typography>
                 </Alert>
               )}
@@ -1017,10 +1013,10 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
           >
             {processing === selectedConsent?.consentId
               ? selectedConsent?.consentType === "genomic_passport"
-                ? "Creating Ziva Passport..."
+                ? "Creating RDZ Passport..."
                 : "Creating Consent NFT..."
               : selectedConsent?.consentType === "genomic_passport"
-                ? "Create Ziva Passport NFT"
+                ? "Create RDZ Passport NFT"
                 : selectedConsent?.consentId?.includes("-")
                   ? "Re-enable & Create New Consent NFT"
                   : "Accept & Create Consent NFT"}

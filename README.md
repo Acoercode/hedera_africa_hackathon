@@ -1,1 +1,1 @@
-Hedera Africa Hackathon - Ziva Health
+Hedera Africa Hackathon - RDZ Health
