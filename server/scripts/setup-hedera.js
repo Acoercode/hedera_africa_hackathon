@@ -35,57 +35,75 @@ async function setupHedera() {
 
     // Collect results (use existing if provided)
     const results = {
-      consentTopicId: process.env.HEDERA_CONSENT_TOPIC_ID || null,
-      genomicTopicId: process.env.HEDERA_GENOMIC_TOPIC_ID || null,
-      incentiveTokenId: process.env.HEDERA_INCENTIVE_TOKEN_ID || null,
-      consentNftTokenId: process.env.HEDERA_CONSENT_NFT_ID || null,
-      passportNftTokenId: process.env.HEDERA_PASSPORT_NFT_ID || null,
+      researchConsentTopicId: process.env.HEDERA_RESEARCH_CONSENT_TOPIC_ID || null,
+      genomicSyncTopicId: process.env.HEDERA_DATA_SYNC_TOPIC_ID || null,
+      genomicPassportTopicId: process.env.HEDERA_PASSPORT_TOPIC_ID || null,
+      rdzIncentiveTokenId: process.env.HEDERA_RDZ_INCENTIVE_TOKEN_ID || null,
+      researchConsentNFTTokenId: process.env.HEDERA_RESEARCH_CONSENT_NFT_ID || null,
+      genomicDataPassportNFTTokenId: process.env.HEDERA_PASSPORT_NFT_ID || null,
+      syncDataConsentNFTTokenId: process.env.HEDERA_DATA_SYNC_NFT_ID || null,
     };
 
     // --- 1) Consent Topic (HCS) ---
-    if (!results.consentTopicId) {
-      console.log("📋 Creating Consent Topic...");
+    if (!results.researchConsentTopicId) {
+      console.log("📋 Creating Research Consent Topic...");
       const tx = await new TopicCreateTransaction()
-        .setTopicMemo("Genomic Data Mesh - Consent Management")
+        .setTopicMemo("RDZ Health - Research Consent Management")
         .setSubmitKey(operatorKey.publicKey) // use PUBLIC key
         .freezeWith(client)
         .sign(operatorKey);
 
       const rx = await (await tx.execute(client)).getReceipt(client);
-      results.consentTopicId = rx.topicId.toString();
-      console.log(`✅ Consent Topic: ${results.consentTopicId}`);
+      results.researchConsentTopicId = rx.topicId.toString();
+      console.log(`✅ Consent Topic: ${results.researchConsentTopicId}`);
     } else {
-      console.log(`📋 Using existing Consent Topic: ${results.consentTopicId}`);
+      console.log(`📋 Using existing Consent Topic: ${results.researchConsentTopicId}`);
     }
 
-    // --- 2) Genomic Data Topic (HCS) ---
-    if (!results.genomicTopicId) {
-      console.log("🧬 Creating Genomic Data Topic...");
+    // --- 2) Genomic Data Sync Topic (HCS) ---
+    if (!results.genomicSyncTopicId) {
+      console.log("🧬 Creating Genomic Sync Data Topic...");
       const tx = await new TopicCreateTransaction()
-        .setTopicMemo("Genomic Data Mesh - Data Access Logs")
+        .setTopicMemo("RDZ Health - Data Sync Management")
         .setSubmitKey(operatorKey.publicKey)
         .freezeWith(client)
         .sign(operatorKey);
 
       const rx = await (await tx.execute(client)).getReceipt(client);
-      results.genomicTopicId = rx.topicId.toString();
-      console.log(`✅ Genomic Topic: ${results.genomicTopicId}`);
+      results.genomicSyncTopicId = rx.topicId.toString();
+      console.log(`✅ Genomic Topic: ${results.genomicSyncTopicId}`);
     } else {
-      console.log(`🧬 Using existing Genomic Topic: ${results.genomicTopicId}`);
+      console.log(`🧬 Using existing Genomic Topic: ${results.genomicSyncTopicId}`);
+    }
+
+    // --- 2) Genomic Passport Topic (HCS) ---
+    if (!results.genomicPassportTopicId) {
+      console.log("🧬 Creating Genomic Passport Topic...");
+      const tx = await new TopicCreateTransaction()
+        .setTopicMemo("RDZ Health - Passport Management")
+        .setSubmitKey(operatorKey.publicKey)
+        .freezeWith(client)
+        .sign(operatorKey);
+
+      const rx = await (await tx.execute(client)).getReceipt(client);
+      results.genomicPassportTopicId = rx.topicId.toString();
+      console.log(`✅ Genomic Topic: ${results.genomicPassportTopicId}`);
+    } else {
+      console.log(`🧬 Using existing Genomic Topic: ${results.genomicPassportTopicId}`);
     }
 
     // --- 3) Fungible Incentive Token (FungibleCommon, INFINITE) ---
-    if (!results.incentiveTokenId) {
-      console.log("💰 Creating Fungible Incentive Token (GDI)...");
+    if (!results.rdzIncentiveTokenId) {
+      console.log("💰 Creating Fungible Incentive Token (RDZ)...");
       const tx = await new TokenCreateTransaction()
-        .setTokenName("Genomic Data Incentive Token")
-        .setTokenSymbol("GDI")
+        .setTokenName("RDZ Health Incentive Token")
+        .setTokenSymbol("RDZ")
         .setTokenType(TokenType.FungibleCommon)
         .setTreasuryAccountId(operatorId)
         .setDecimals(2)
         .setInitialSupply(1_000_000)              // start with 1M
         .setSupplyType(TokenSupplyType.Infinite)  // can mint more later
-        .setTokenMemo("Incentive tokens for genomic data sharing")
+        .setTokenMemo("Incentive tokens for RDZ Health genomic data sharing")
         .setAutoRenewAccountId(operatorId)
         .setAutoRenewPeriod(60 * 60 * 24 * 90)    // 90 days
         .setMaxTransactionFee(new Hbar(10))
@@ -93,18 +111,18 @@ async function setupHedera() {
         .sign(operatorKey);
 
       const rx = await (await tx.execute(client)).getReceipt(client);
-      results.incentiveTokenId = rx.tokenId.toString();
-      console.log(`✅ Incentive Token: ${results.incentiveTokenId}`);
+      results.rdzIncentiveTokenId = rx.tokenId.toString();
+      console.log(`✅ Incentive Token: ${results.rdzIncentiveTokenId}`);
     } else {
-      console.log(`💰 Using existing Incentive Token: ${results.incentiveTokenId}`);
+      console.log(`💰 Using existing Incentive Token: ${results.rdzIncentiveTokenId}`);
     }
 
     // --- 4) Consent NFT (NonFungibleUnique, INFINITE) ---
-    if (!results.consentNftTokenId) {
-      console.log("🖼️ Creating Consent NFT (infinite supply)...");
+    if (!results.researchConsentNFTTokenId) {
+      console.log("🖼️ Creating Research Consent NFT (infinite supply)...");
       const tx = await new TokenCreateTransaction()
-        .setTokenName("Ziva Health Consent NFT")                  // readable name
-        .setTokenSymbol("ZIVACONSENT")                    // clean symbol (no hyphen)
+        .setTokenName("RDZ Health Research Consent NFT")                  // readable name
+        .setTokenSymbol("RDZRESEARCH")                    // clean symbol (no hyphen)
         .setTokenType(TokenType.NonFungibleUnique)    // NFT
         .setTreasuryAccountId(operatorId)
         .setSupplyType(TokenSupplyType.Infinite)      // INFINITE supply
@@ -117,18 +135,18 @@ async function setupHedera() {
         .sign(operatorKey);
 
       const rx = await (await tx.execute(client)).getReceipt(client);
-      results.consentNftTokenId = rx.tokenId.toString();
-      console.log(`✅ Consent NFT Token: ${results.consentNftTokenId}`);
+      results.researchConsentNFTTokenId = rx.tokenId.toString();
+      console.log(`✅ Consent NFT Token: ${results.researchConsentNFTTokenId}`);
     } else {
-      console.log(`🖼️ Using existing Consent NFT Token: ${results.consentNftTokenId}`);
+      console.log(`🖼️ Using existing Consent NFT Token: ${results.researchConsentNFTTokenId}`);
     }
 
       // --- 5) Passport NFT (NonFungibleUnique, INFINITE) ---
-      if (!results.passportNftTokenId) {
-        console.log("🖼️ Creating Consent NFT (infinite supply)...");
+      if (!results.genomicDataPassportNFTTokenId) {
+        console.log("🖼️ Creating RDZ Health Passport NFT (infinite supply)...");
         const tx = await new TokenCreateTransaction()
-          .setTokenName("Ziva Health Passport NFT")                  // readable name
-          .setTokenSymbol("ZIVAPASSPORT")                    // clean symbol (no hyphen)
+          .setTokenName("RDZ Health Passport NFT")                  // readable name
+          .setTokenSymbol("RDZPASSPORT")                    // clean symbol (no hyphen)
           .setTokenType(TokenType.NonFungibleUnique)    // NFT
           .setTreasuryAccountId(operatorId)
           .setSupplyType(TokenSupplyType.Infinite)      // INFINITE supply
@@ -141,37 +159,47 @@ async function setupHedera() {
           .sign(operatorKey);
   
         const rx = await (await tx.execute(client)).getReceipt(client);
-        results.passportNftTokenId = rx.tokenId.toString();
-        console.log(`✅ Consent NFT Token: ${results.passportNftTokenId}`);
+        results.genomicDataPassportNFTTokenId = rx.tokenId.toString();
+        console.log(`✅ Consent NFT Token: ${results.genomicDataPassportNFTTokenId}`);
       } else {
-        console.log(`🖼️ Using existing Consent NFT Token: ${results.passportNftTokenId}`);
+        console.log(`🖼️ Using existing Consent NFT Token: ${results.genomicDataPassportNFTTokenId}`);
+      }
+
+      // --- 5) Passport NFT (NonFungibleUnique, INFINITE) ---
+      if (!results.syncDataConsentNFTTokenId) {
+        console.log("🖼️ Creating RDZ Health Data Sync Consent NFT (infinite supply)...");
+        const tx = await new TokenCreateTransaction()
+          .setTokenName("RDZ Health Data Sync Consent NFT")                  // readable name
+          .setTokenSymbol("RDZDATASYNC")                    // clean symbol (no hyphen)
+          .setTokenType(TokenType.NonFungibleUnique)    // NFT
+          .setTreasuryAccountId(operatorId)
+          .setSupplyType(TokenSupplyType.Infinite)      // INFINITE supply
+          .setSupplyKey(operatorKey.publicKey)          // supplyKey controls minting
+          .setTokenMemo("Consent proofs (hash on-chain; full text off-chain)")
+          .setAutoRenewAccountId(operatorId)
+          .setAutoRenewPeriod(60 * 60 * 24 * 90)
+          .setMaxTransactionFee(new Hbar(10))
+          .freezeWith(client)
+          .sign(operatorKey);
+  
+        const rx = await (await tx.execute(client)).getReceipt(client);
+        results.syncDataConsentNFTTokenId = rx.tokenId.toString();
+        console.log(`✅ Consent NFT Token: ${results.syncDataConsentNFTTokenId}`);
+      } else {
+        console.log(`🖼️ Using existing Consent NFT Token: ${results.syncDataConsentNFTTokenId}`);
       }
 
     // --- Summary / Output ---
     console.log("\n🎉 Hedera setup complete!\n");
     console.log("📋 Add/update these in your .env:\n");
-    if (results.consentTopicId)    console.log(`HEDERA_CONSENT_TOPIC_ID=${results.consentTopicId}`);
-    if (results.genomicTopicId)    console.log(`HEDERA_GENOMIC_TOPIC_ID=${results.genomicTopicId}`);
+    if (results.researchConsentTopicId)    console.log(`HEDERA_RESEARCH_CONSENT_TOPIC_ID=${results.researchConsentTopicId}`);
+    if (results.genomicSyncTopicId)    console.log(`HEDERA_DATA_SYNC_TOPIC_ID=${results.genomicSyncTopicId}`);
+    if (results.genomicPassportTopicId)    console.log(`HEDERA_PASSPORT_TOPIC_ID=${results.genomicSyncTopicId}`);
     if (results.incentiveTokenId)  console.log(`HEDERA_INCENTIVE_TOKEN_ID=${results.incentiveTokenId}`);
-    if (results.consentNftTokenId) console.log(`HEDERA_CONSENT_NFT_ID=${results.consentNftTokenId}`);
-    if (results.passportNftTokenId) console.log(`HEDERA_PASSPORT_NFT_ID=${results.passportNftTokenId}`);
+    if (results.researchConsentNFTTokenId) console.log(`HEDERA_RESEARCH_CONSENT_NFT_ID=${results.consentNftTokenId}`);
+    if (results.genomicDataPassportNFTTokenId) console.log(`HEDERA_PASSPORT_NFT_ID=${results.passportNftTokenId}`);
+    if (results.syncDataConsentNFTTokenId) console.log(`HEDERA_DATA_SYNC_NFT_ID=${results.syncDataConsentNFTTokenId}`);
 
-    console.log("\n🔍 View on HashScan:");
-    if (results.consentTopicId)    console.log(`   Consent Topic:  https://hashscan.io/${network}/topic/${results.consentTopicId}`);
-    if (results.genomicTopicId)    console.log(`   Genomic Topic:  https://hashscan.io/${network}/topic/${results.genomicTopicId}`);
-    if (results.incentiveTokenId)  console.log(`   Incentive Token: https://hashscan.io/${network}/token/${results.incentiveTokenId}`);
-    if (results.consentNftTokenId) console.log(`   Consent NFT:     https://hashscan.io/${network}/token/${results.consentNftTokenId}\n`);
-    if (results.passportNftTokenId) console.log(`   Passport NFT:     https://hashscan.io/${network}/token/${results.passportNftTokenId}\n`);
-    
-    console.log("💡 Next:");
-    console.log("   • Frontend: user associates HEDERA_CONSENT_NFT_ID");
-    console.log("   • Backend: mint NFT (+metadata hash) and transfer to user\n");
-    console.log("   • Frontend: user associates HEDERA_PASSPORT_NFT_ID");
-    console.log("   • Backend: mint NFT (+metadata hash) and transfer to user\n");
-    console.log("   • Frontend: user associates HEDERA_CONSENT_NFT_ID");
-    console.log("   • Backend: mint NFT (+metadata hash) and transfer to user\n");
-    console.log("   • Frontend: user associates HEDERA_CONSENT_NFT_ID");
-    console.log("   • Backend: mint NFT (+metadata hash) and transfer to user\n");
   } catch (error) {
     console.error("❌ Error setting up Hedera resources:", error);
     console.error("💡 Make sure you have:");

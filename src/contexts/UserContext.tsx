@@ -111,19 +111,69 @@ export const UserProvider: React.FC<UserProviderProps> = ({
     setError(null);
 
     try {
-      const response = await fetch(
+      // First, fetch user data
+      const userResponse = await fetch(
         `http://localhost:5000/api/users/by-hedera-account/${accountId}`,
       );
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch user data: ${response.statusText}`);
+      if (!userResponse.ok) {
+        throw new Error(
+          `Failed to fetch user data: ${userResponse.statusText}`,
+        );
       }
 
-      const userResponse: UserResponse = await response.json();
+      const userData: UserResponse = await userResponse.json();
 
-      if (userResponse.exists) {
-        setUserState(userResponse.user);
-        setGenomicData(userResponse.genomicData);
+      if (userData.exists) {
+        setUserState(userData.user);
+
+        // Check data sync consent before showing genomic data
+        try {
+          const consentResponse = await fetch(
+            `http://localhost:5000/api/consent/data-sync/status/${accountId}?t=${Date.now()}`,
+          );
+
+          if (consentResponse.ok) {
+            const consentData = await consentResponse.json();
+
+            console.log("🔍 Data sync consent status:", {
+              success: consentData.success,
+              hasConsent: !!consentData.consent,
+              isActive: consentData.consent?.isActive,
+              dbIsActive: consentData.consent?.dbIsActive,
+              nftValid: consentData.consent?.nftValid,
+              revokedAt: consentData.consent?.revokedAt,
+            });
+
+            if (
+              consentData.success &&
+              consentData.consent &&
+              consentData.consent.isActive
+            ) {
+              // User has consented to data sync - show genomic data
+              console.log(
+                "✅ User has data sync consent - showing genomic data",
+              );
+              setGenomicData(userData.genomicData);
+            } else {
+              // User has not consented to data sync or consent is rejected - hide genomic data
+              console.log(
+                "❌ User has not consented to data sync or consent is rejected - hiding genomic data",
+              );
+              setGenomicData(null);
+            }
+          } else {
+            // If we can't check consent status, err on the side of caution and hide data
+            console.log(
+              "⚠️ Could not check data sync consent - hiding genomic data for privacy",
+            );
+            setGenomicData(null);
+          }
+        } catch (consentError) {
+          console.error("Error checking data sync consent:", consentError);
+          // If we can't check consent, hide genomic data for privacy
+          setGenomicData(null);
+        }
       } else {
         setUserState(null);
         setGenomicData(null);

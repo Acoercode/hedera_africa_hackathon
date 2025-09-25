@@ -22,12 +22,16 @@ import {
   Person as PersonIcon,
   Star as StarIcon,
   Logout as LogoutIcon,
+  Sync as SyncIcon,
+  SyncDisabled as SyncDisabledIcon,
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { useUser } from "../contexts/UserContext";
 import WalletTab from "./WalletTab";
 import ConsentManagement from "./ConsentManagement";
 import ActivityTab from "./ActivityTab";
+import DataSyncManagement from "./DataSyncManagement";
+import DataSyncConsentDialog from "./DataSyncConsentDialog";
 import rdzLogo from "../assets/RDZ Health.png";
 import { ReactComponent as ProfileIcon } from "../assets/profile_icon_color.svg";
 import { ReactComponent as DataSharingIcon } from "../assets/data_icon_color.svg";
@@ -51,12 +55,16 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
   const [currentTab, setCurrentTab] = useState(0);
   const [currentProfileCard, setCurrentProfileCard] = useState(0);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const { walletInterface } = useWalletInterface();
+  const [showDataSyncConsent, setShowDataSyncConsent] = useState(false);
+  const [dataSyncLoading, setDataSyncLoading] = useState(false);
+  const [autoOpenDataSyncConsent, setAutoOpenDataSyncConsent] = useState(false);
+  const { accountId, walletInterface } = useWalletInterface();
   const {
     user,
     genomicData,
     loading: userLoading,
     error: userError,
+    refetchUser,
   } = useUser();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -65,6 +73,23 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
 
   const handleProfileCardClick = (cardIndex: number) => {
     setCurrentProfileCard(cardIndex);
+  };
+
+  // Data sync consent handlers - now uses the same consent dialog flow
+  const handleDataSyncConsent = async () => {
+    // This will be handled by the ConsentManagement component's consent dialog
+    // The actual consent creation happens in the ConsentManagement component
+    setShowDataSyncConsent(false);
+  };
+
+  const handleDataSyncDecline = () => {
+    setShowDataSyncConsent(false);
+  };
+
+  const handleConsentCreated = async () => {
+    if (refetchUser) {
+      await refetchUser();
+    }
   };
 
   const handleLogoutClick = () => {
@@ -102,16 +127,48 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
             genomicData={genomicData}
             userLoading={userLoading}
             userError={userError}
+            onRequestDataSyncConsent={() => {
+              setAutoOpenDataSyncConsent(true);
+              setCurrentTab(1); // Switch to Data tab
+            }}
           />
         );
       case 1: // Data Sharing
-        return <DataSharingTab walletInterface={walletInterface} />;
+        return (
+          <DataSharingTab
+            walletInterface={walletInterface}
+            user={user}
+            genomicData={genomicData}
+            autoOpenDataSyncConsent={autoOpenDataSyncConsent}
+            onDataSyncConsentOpened={() => setAutoOpenDataSyncConsent(false)}
+            onRequestDataSyncConsent={() => {
+              setAutoOpenDataSyncConsent(true);
+              setCurrentTab(1); // Switch to Data tab
+            }}
+            onConsentCreated={handleConsentCreated}
+          />
+        );
       case 2: // Activity
         return <ActivityTab walletInterface={walletInterface} />;
       case 3: // Chat
         return <ChatTab walletInterface={walletInterface} />;
       case 4: // Wallet
         return <WalletTab />;
+      case 5: // Data Sync
+        return (
+          <DataSyncManagement
+            accountId={accountId}
+            userData={
+              user
+                ? {
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    iHopeId: user.iHopeId,
+                  }
+                : undefined
+            }
+          />
+        );
       default:
         return (
           <ProfileTab
@@ -122,6 +179,10 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
             genomicData={genomicData}
             userLoading={userLoading}
             userError={userError}
+            onRequestDataSyncConsent={() => {
+              setAutoOpenDataSyncConsent(true);
+              setCurrentTab(1); // Switch to Data tab
+            }}
           />
         );
     }
@@ -269,6 +330,7 @@ const ProfileTab: React.FC<{
   genomicData: any;
   userLoading: boolean;
   userError: string | null;
+  onRequestDataSyncConsent: () => void;
 }> = ({
   walletInterface,
   currentProfileCard,
@@ -277,6 +339,7 @@ const ProfileTab: React.FC<{
   genomicData,
   userLoading,
   userError,
+  onRequestDataSyncConsent,
 }) => {
   if (userLoading) {
     return (
@@ -517,9 +580,34 @@ const ProfileTab: React.FC<{
                 </Typography>
               </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary">
-                Loading patient data...
-              </Typography>
+              <Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  Patient overview data is not available.
+                </Typography>
+                <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
+                  🔒 Data Access Restricted
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 2, display: "block" }}
+                >
+                  To view your genomic data, please consent to data
+                  synchronization.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={onRequestDataSyncConsent}
+                >
+                  Enable Data Access
+                </Button>
+              </Box>
             )}
           </Box>
         )}
@@ -546,9 +634,34 @@ const ProfileTab: React.FC<{
                 </Typography>
               </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary">
-                Loading family history...
-              </Typography>
+              <Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  Family history data is not available.
+                </Typography>
+                <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
+                  🔒 Data Access Restricted
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 2, display: "block" }}
+                >
+                  To view your genomic data, please consent to data
+                  synchronization.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={onRequestDataSyncConsent}
+                >
+                  Enable Data Access
+                </Button>
+              </Box>
             )}
           </Box>
         )}
@@ -577,9 +690,34 @@ const ProfileTab: React.FC<{
                 </Typography>
               </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary">
-                Loading benefits information...
-              </Typography>
+              <Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  Benefits information is not available.
+                </Typography>
+                <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
+                  🔒 Data Access Restricted
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 2, display: "block" }}
+                >
+                  To view your genomic data, please consent to data
+                  synchronization.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={onRequestDataSyncConsent}
+                >
+                  Enable Data Access
+                </Button>
+              </Box>
             )}
           </Box>
         )}
@@ -589,14 +727,109 @@ const ProfileTab: React.FC<{
 };
 
 // Data Sharing Tab Component
-const DataSharingTab: React.FC<{ walletInterface: any }> = ({
+const DataSharingTab: React.FC<{
+  walletInterface: any;
+  user: any;
+  genomicData: any;
+  autoOpenDataSyncConsent?: boolean;
+  onDataSyncConsentOpened?: () => void;
+  onRequestDataSyncConsent: () => void;
+  onConsentCreated?: () => void;
+}> = ({
   walletInterface,
-}) => (
-  <Box>
-    {/* Consent Management */}
-    <ConsentManagement walletInterface={walletInterface} />
-  </Box>
-);
+  user,
+  genomicData,
+  autoOpenDataSyncConsent,
+  onDataSyncConsentOpened,
+  onRequestDataSyncConsent,
+  onConsentCreated,
+}) => {
+  // Auto-open data sync consent dialog if requested
+  React.useEffect(() => {
+    if (autoOpenDataSyncConsent && onDataSyncConsentOpened) {
+      // Trigger the consent dialog in ConsentManagement
+      // This will be handled by the ConsentManagement component
+      onDataSyncConsentOpened();
+    }
+  }, [autoOpenDataSyncConsent, onDataSyncConsentOpened]);
+
+  return (
+    <Box>
+      {/* Data Sync Status Section */}
+      {!genomicData && (
+        <Card
+          sx={{
+            p: 3,
+            mb: 3,
+            backgroundColor: "#fff3cd",
+            border: "1px solid #ffeaa7",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <Typography
+              variant="h6"
+              sx={{ color: "#856404", fontWeight: "bold" }}
+            >
+              🔒 Data Access Restricted
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{ mb: 2, color: "#856404" }}>
+            Your genomic data is not accessible because you haven't consented to
+            data synchronization.
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 3, color: "#856404" }}>
+            To enable data sharing and access your genomic information, please
+            consent to data synchronization.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={onRequestDataSyncConsent}
+            sx={{
+              backgroundColor: "#3F37C9",
+              "&:hover": { backgroundColor: "#2d2a9a" },
+            }}
+          >
+            Enable Data Synchronization
+          </Button>
+        </Card>
+      )}
+
+      {/* Data Access Status */}
+      {genomicData && (
+        <Card
+          sx={{
+            p: 3,
+            mb: 3,
+            backgroundColor: "#d4edda",
+            border: "1px solid #c3e6cb",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <Typography
+              variant="h6"
+              sx={{ color: "#155724", fontWeight: "bold" }}
+            >
+              ✅ Data Access Enabled
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{ color: "#155724" }}>
+            Your genomic data is accessible and you can manage your consent
+            preferences below.
+          </Typography>
+        </Card>
+      )}
+
+      {/* Consent Management */}
+      <ConsentManagement
+        walletInterface={walletInterface}
+        autoOpenDataSyncConsent={autoOpenDataSyncConsent}
+        onDataSyncConsentOpened={onDataSyncConsentOpened}
+        onConsentCreated={onConsentCreated}
+      />
+    </Box>
+  );
+};
 
 // Chat Tab Component
 const ChatTab: React.FC<{ walletInterface: any }> = ({ walletInterface }) => (

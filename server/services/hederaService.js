@@ -6,11 +6,13 @@ class HederaService {
     this.client = null;
     this.operatorId = null;
     this.operatorKey = null;
-    this.consentTopicId = null;
-    this.genomicTopicId = null;
+    this.researchConsentTopicId = null;
+    this.genomicSyncTopicId = null;
+    this.genomicPassportTopicId = null;
     this.incentiveTokenId = null;
-    this.consentNFTTokenId = null;
-    this.genomicDataNFTTokenId = null;
+    this.researchConsentNFTTokenId = null;
+    this.genomicDataPassportNFTTokenId = null;
+    this.syncDataConsentNFTTokenId = null;
     this.initialized = false;
   }
 
@@ -96,6 +98,28 @@ class HederaService {
       
     } catch (error) {
       console.error('❌ Failed to initialize genomic topic:', error);
+      throw error;
+    }
+
+    // Initialize NFT Token IDs from environment variables
+    try {
+      if (process.env.HEDERA_RESEARCH_CONSENT_NFT_ID) {
+        this.researchConsentNFTTokenId = process.env.HEDERA_RESEARCH_CONSENT_NFT_ID;
+        console.log(`🖼️ Using existing consent NFT token: ${this.researchConsentNFTTokenId}`);
+      }
+      
+      if (process.env.HEDERA_PASSPORT_NFT_ID) {
+        this.genomicDataPassportNFTTokenId = process.env.HEDERA_PASSPORT_NFT_ID;
+        console.log(`🖼️ Using existing passport NFT token: ${this.genomicDataPassportNFTTokenId}`);
+      }
+      
+      if (process.env.HEDERA_DATA_SYNC_NFT_ID) {
+        this.syncDataConsentNFTTokenId = process.env.HEDERA_DATA_SYNC_NFT_ID;
+        console.log(`🖼️ Using existing data sync NFT token: ${this.syncDataConsentNFTTokenId}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to initialize NFT token IDs:', error);
       throw error;
     }
   }
@@ -418,14 +442,14 @@ class HederaService {
 
     try {
       const tokenCreateTransaction = new TokenCreateTransaction()
-        .setTokenName("Genomic Data Incentive Token")
-        .setTokenSymbol("GDI")
+        .setTokenName("RDZ Health Incentive Token")
+        .setTokenSymbol("RDZ")
         .setTokenType(TokenType.FungibleCommon)
         .setDecimals(2)
         .setInitialSupply(1000000)
         .setTreasuryAccountId(this.operatorId)
         .setSupplyType(TokenSupplyType.Infinite)
-        .setTokenMemo("Incentive tokens for genomic data sharing");
+        .setTokenMemo("Incentive tokens for RDZ Health genomic data sharing");
 
       const response = await tokenCreateTransaction.execute(this.client);
       const receipt = await response.getReceipt(this.client);

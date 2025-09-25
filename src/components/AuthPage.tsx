@@ -98,6 +98,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         accountId={accountId}
         onAccountFound={handleAccountFound}
         onBackToWallet={handleBackToWallet}
+        walletInterface={walletInterface}
       />
     );
   }

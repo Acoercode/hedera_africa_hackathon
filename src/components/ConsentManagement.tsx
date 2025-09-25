@@ -26,13 +26,20 @@ import {
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { Consent } from "../services/api";
+import { HEDERA_CONFIG } from "../config/constants";
 
 interface ConsentManagementProps {
   walletInterface: any;
+  autoOpenDataSyncConsent?: boolean;
+  onDataSyncConsentOpened?: () => void;
+  onConsentCreated?: () => void;
 }
 
 const ConsentManagement: React.FC<ConsentManagementProps> = ({
   walletInterface,
+  autoOpenDataSyncConsent,
+  onDataSyncConsentOpened,
+  onConsentCreated,
 }) => {
   const { accountId } = useWalletInterface();
   const [consents, setConsents] = useState<Consent[]>([]);
@@ -49,18 +56,50 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
     }
   }, [accountId]);
 
+  // Auto-open data sync consent dialog if requested
+  useEffect(() => {
+    if (autoOpenDataSyncConsent && onDataSyncConsentOpened) {
+      // Find the data sync consent and open the dialog
+      const dataSyncConsent = predefinedConsentTypes.find(
+        (consent) => consent.consentType === "data_sync",
+      );
+      if (dataSyncConsent) {
+        setSelectedConsent(dataSyncConsent);
+        setShowConsentDialog(true);
+        onDataSyncConsentOpened(); // Notify parent that dialog was opened
+      }
+    }
+  }, [autoOpenDataSyncConsent, onDataSyncConsentOpened]);
+
+  console.log("HEDERA_CONFIG", HEDERA_CONFIG);
+
   // Predefined consent types that users can enable/disable
   const predefinedConsentTypes = [
     {
+      consentId: "data-sync",
+      consentType: "data_sync",
+      name: "Data Synchronization",
+      description:
+        "Enable data synchronization of your genomic data into the RDZ platform",
+      detailedDescription:
+        "This consent allows your genomic data to be synchronized across research platforms and enables you to participate in ongoing and future research studies. You will receive updates about research findings related to your genomic profile.",
+      dataTypes: ["whole_genome", "exome", "targeted_panel"],
+      purposes: ["data_synchronization"],
+      defaultStatus: "pending",
+      nftTokenId: null,
+      nftSerialNumber: null,
+      nftTransactionId: null,
+    },
+    {
       consentId: "genomic-research",
-      consentType: "genomic_analysis", // Use valid enum value
+      consentType: "genomic_analysis",
       name: "Medical Research Participation",
       description:
         "Share genomic data for medical research and drug development",
       detailedDescription:
         "This consent allows researchers to use your genomic data to advance medical knowledge, develop new treatments, and understand genetic diseases. Your data will be anonymized and used only for legitimate research purposes.",
-      dataTypes: ["whole_genome", "exome", "targeted_panel"], // Use valid enum values
-      purposes: ["research", "drug_development", "population_studies"], // Use valid enum values
+      dataTypes: ["whole_genome", "exome", "targeted_panel"],
+      purposes: ["research", "drug_development", "population_studies"],
       defaultStatus: "pending",
       nftTokenId: null,
       nftSerialNumber: null,
@@ -68,14 +107,14 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
     },
     {
       consentId: "genomic-passport",
-      consentType: "genomic_passport", // New genomic passport type
+      consentType: "genomic_passport",
       name: "RDZ Passport",
       description:
         "Create your RDZ Passport NFT proving ownership of your genomic data",
       detailedDescription:
         "This creates your unique RDZ Passport NFT that serves as proof of ownership of your genomic data. Your RDZ Passport acts as an identity badge that proves you have genomic data stored and controlled off-chain. The NFT does not contain your actual genomic data, just cryptographic proof of ownership.",
-      dataTypes: ["genomic_passport"], // Use valid enum values
-      purposes: ["data_ownership_proof"], // Use valid enum values
+      dataTypes: ["genomic_passport"],
+      purposes: ["data_ownership_proof"],
       defaultStatus: "pending",
       nftTokenId: null,
       nftSerialNumber: null,
@@ -112,7 +151,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
           );
         }
 
-        return {
+        const mergedConsent = {
           ...predefined,
           patientId: accountId || "0.0.6881057", // Ensure patientId is set and not null
           consentStatus: existing
@@ -143,6 +182,19 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
           isActive: existing ? existing.isActive : true,
           updatedAt: existing ? existing.updatedAt : undefined,
         };
+
+        // Debug log for passport consent
+        if (predefined.consentType === "genomic_passport") {
+          console.log("🔍 Passport consent merge result:", {
+            predefined: predefined.consentType,
+            existing: existing ? existing.consentStatus : "none",
+            merged: mergedConsent.consentStatus,
+            nftTokenId: mergedConsent.consentNFTTokenId,
+            nftSerial: mergedConsent.consentNFTSerialNumber,
+          });
+        }
+
+        return mergedConsent;
       });
 
       setConsents(mergedConsents);
@@ -198,16 +250,48 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         // Log activity as data type (genomic passport creation)
         await logPassportActivity(selectedConsent, "created");
 
+        // Set success message
         setSuccess(
-          `RDZ Passport NFT ${passportResult.tokenIdStr}#${passportResult.serial} created successfully.`,
+          `Genomic passport NFT ${passportResult.consentNFTTokenId}#${passportResult.consentNFTSerialNumber} created successfully.`,
         );
 
         // Reload consents to reflect changes
         await loadConsents();
-        return;
+
+        // Notify parent that consent was created (to trigger data refetch)
+        if (onConsentCreated) {
+          onConsentCreated();
+        }
+
+        return; // Exit early - don't execute regular consent flow
+      } else if (selectedConsent.consentType === "data_sync") {
+        // For data sync consent, user must sign the transaction (same as genomic passport)
+        const dataSyncResult = await signDataSyncTransaction();
+
+        console.log(
+          "✅ Data sync consent NFT minted and transferred:",
+          dataSyncResult,
+        );
+
+        // Log activity for data sync consent
+        await logConsentActivity(selectedConsent, "created");
+
+        setSuccess(
+          `Data sync consent NFT ${dataSyncResult.data.consentNFTTokenId}#${dataSyncResult.data.consentNFTSerialNumber} created successfully.`,
+        );
+
+        // Reload consents to reflect changes
+        await loadConsents();
+
+        // Notify parent that consent was created (to trigger data refetch)
+        if (onConsentCreated) {
+          onConsentCreated();
+        }
+
+        return; // Exit early - don't execute regular consent flow
       }
 
-      // Regular consent flow (requires wallet signing)
+      // Regular consent flow (requires wallet signing) - only for non-passport, non-data-sync consents
       // Step 1: Sign transaction with user wallet FIRST
       const mintResult = await signTransactionWithWallet();
 
@@ -217,7 +301,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       await logConsentActivity(selectedConsent, "granted");
 
       setSuccess(
-        `Consent enabled and NFT ${mintResult.tokenIdStr}#${mintResult.serial} issued.`,
+        `Consent enabled and NFT ${mintResult.consentNFTTokenId}#${mintResult.consentNFTSerialNumber} issued.`,
       );
 
       // Reload consents to reflect changes
@@ -245,7 +329,9 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
       // Use native HTS NFT flow for RDZ Passport
       const { TokenId } = await import("@hashgraph/sdk");
-      const passportTokenId = TokenId.fromString("0.0.6886170");
+      const passportTokenId = TokenId.fromString(
+        HEDERA_CONFIG.PASSPORT_NFT_TOKEN_ID,
+      );
 
       console.log("📱 Wallet should now open for RDZ Passport creation...");
       console.log("📋 RDZ Passport creation details:", {
@@ -296,6 +382,75 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
     }
   };
 
+  const signDataSyncTransaction = async () => {
+    try {
+      console.log("🔐 Opening wallet to sign data sync consent transaction...");
+
+      const activeWalletInterface = walletInterface;
+
+      if (!activeWalletInterface) {
+        throw new Error(
+          "Wallet not connected. Please connect your wallet first.",
+        );
+      }
+
+      // Use native HTS NFT flow for data sync consent
+      const { TokenId } = await import("@hashgraph/sdk");
+      const dataSyncTokenId = TokenId.fromString(
+        HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID,
+      );
+
+      console.log(
+        "📱 Wallet should now open for data sync token association...",
+      );
+      console.log("📋 Data sync token association details:", {
+        tokenId: dataSyncTokenId.toString(),
+        purpose: "Associate with Data Sync Consent NFT Collection",
+        type: "data_sync",
+        description: "Enable data synchronization across research platforms",
+        action: "Data Sync Token Association (required before receiving NFTs)",
+      });
+
+      // Step 1: User signs token association transaction
+      const associationTransactionId =
+        await activeWalletInterface.associateToken(dataSyncTokenId);
+
+      if (!associationTransactionId) {
+        throw new Error("Token association failed or was rejected.");
+      }
+
+      console.log("✅ Token association successful:", associationTransactionId);
+
+      // Step 2: Backend mints and transfers the NFT
+      const dataSyncResponse = await fetch(
+        "http://localhost:5000/api/consent/data-sync",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ accountId }),
+        },
+      );
+
+      if (!dataSyncResponse.ok) {
+        const errorText = await dataSyncResponse.text();
+        throw new Error(`Backend error: ${errorText}`);
+      }
+
+      const dataSyncResult = await dataSyncResponse.json();
+      console.log(
+        "✅ Data sync consent NFT minted and transferred:",
+        dataSyncResult,
+      );
+
+      return dataSyncResult;
+    } catch (error) {
+      console.error("Error signing data sync transaction:", error);
+      throw error;
+    }
+  };
+
   const signTransactionWithWallet = async () => {
     try {
       console.log("🔐 Opening wallet to sign consent contract transaction...");
@@ -310,7 +465,9 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
       // Use native HTS NFT flow for consent
       const { TokenId } = await import("@hashgraph/sdk");
-      const consentTokenId = TokenId.fromString("0.0.6886067");
+      const consentTokenId = TokenId.fromString(
+        HEDERA_CONFIG.RESEARCH_CONSENT_NFT_TOKEN_ID,
+      );
 
       console.log("📱 Wallet should now open for token association...");
       console.log("📋 Token association details:", {
@@ -419,8 +576,13 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       await loadConsents();
 
       setSuccess(
-        `Consent for "${consent.consentType}" has been revoked successfully.`,
+        `Consent for "${predefinedConsentTypes.find((ct) => ct.consentType === consent.consentType)?.name || consent.consentType}" has been revoked successfully.`,
       );
+
+      // Notify parent that consent was revoked (to trigger data refetch)
+      if (onConsentCreated) {
+        onConsentCreated();
+      }
     } catch (error) {
       console.error("Error revoking consent:", error);
       setError("Failed to revoke consent. Please try again.");
@@ -604,7 +766,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                       sx={{ mb: 1, color: "text.primary", fontWeight: "bold" }}
                     >
                       {predefinedConsentTypes.find(
-                        (ct) => ct.consentId === consent.consentId,
+                        (ct) => ct.consentType === consent.consentType,
                       )?.name ||
                         consent.consentType.replace("_", " ").toUpperCase()}
                     </Typography>
@@ -614,7 +776,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                       sx={{ mb: 1 }}
                     >
                       {predefinedConsentTypes.find(
-                        (ct) => ct.consentId === consent.consentId,
+                        (ct) => ct.consentType === consent.consentType,
                       )?.description ||
                         "Manage your consent for this data type"}
                     </Typography>
@@ -964,7 +1126,25 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                     <br />
                     <strong>Wallet Signing Required:</strong> You will need to
                     sign a "RDZ Passport Creation" transaction (Token ID:
-                    0.0.6886170) to create your genomic passport.
+                    {HEDERA_CONFIG.PASSPORT_NFT_TOKEN_ID}) to create your
+                    genomic passport.
+                  </Typography>
+                </Alert>
+              ) : selectedConsent?.consentType === "data_sync" ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    <strong>Data Synchronization Consent:</strong> This will
+                    create a Data Sync Consent NFT that enables your genomic
+                    data to be synchronized across research platforms. This
+                    allows you to participate in ongoing and future research
+                    studies and receive updates about research findings related
+                    to your genomic profile.
+                    <br />
+                    <br />
+                    <strong>Wallet Signing Required:</strong> You will need to
+                    sign a "Data Sync Token Association" transaction (Token ID:
+                    {HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID}) to enable data
+                    synchronization.
                   </Typography>
                 </Alert>
               ) : (
@@ -984,8 +1164,10 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                     <strong>Please check your wallet!</strong> A transaction has
                     been sent to your connected wallet.
                     {selectedConsent?.consentType === "genomic_passport"
-                      ? 'The transaction will show "RDZ Passport Creation" (Token ID: 0.0.6886170) for your genomic passport. Please approve to complete the passport creation process.'
-                      : 'The transaction will show "RDZ Consent" (Token ID: 0.0.6886067) for the consent NFT. Please approve to complete the consent process.'}
+                      ? `The transaction will show "RDZ Passport Creation" (Token ID: ${HEDERA_CONFIG.PASSPORT_NFT_TOKEN_ID}) for your genomic passport. Please approve to complete the passport creation process.`
+                      : selectedConsent?.consentType === "data_sync"
+                        ? `The transaction will show "Data Sync Token Association" (Token ID: ${HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID}) for data synchronization. Please approve to complete the data sync consent process.`
+                        : `The transaction will show "RDZ Consent" (Token ID: ${HEDERA_CONFIG.RESEARCH_CONSENT_NFT_TOKEN_ID}) for the consent NFT. Please approve to complete the consent process.`}
                   </Typography>
                 </Alert>
               )}
@@ -1014,12 +1196,16 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
             {processing === selectedConsent?.consentId
               ? selectedConsent?.consentType === "genomic_passport"
                 ? "Creating RDZ Passport..."
-                : "Creating Consent NFT..."
+                : selectedConsent?.consentType === "data_sync"
+                  ? "Creating Data Sync Consent..."
+                  : "Creating Consent NFT..."
               : selectedConsent?.consentType === "genomic_passport"
                 ? "Create RDZ Passport NFT"
-                : selectedConsent?.consentId?.includes("-")
-                  ? "Re-enable & Create New Consent NFT"
-                  : "Accept & Create Consent NFT"}
+                : selectedConsent?.consentType === "data_sync"
+                  ? "Enable Data Synchronization"
+                  : selectedConsent?.consentId?.includes("-")
+                    ? "Re-enable & Create New Consent NFT"
+                    : "Accept & Create Consent NFT"}
           </Button>
         </DialogActions>
       </Dialog>

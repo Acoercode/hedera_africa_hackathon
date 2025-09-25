@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const Consent = require('../models/Consent');
 const hederaService = require('../services/hederaService');
 const incentiveService = require('../services/incentiveService');
 const { v4: uuidv4 } = require('uuid');
-const { TokenId, TokenMintTransaction, TransferTransaction, AccountId: HederaAccountId, TopicMessageSubmitTransaction } = require('@hashgraph/sdk');
+const { TokenId, TokenMintTransaction, TransferTransaction, AccountId: HederaAccountId, TopicMessageSubmitTransaction, TokenNftInfoQuery, NftId } = require('@hashgraph/sdk');
 
 // GET /api/consent - Get all consents
 router.get('/', async (req, res) => {
@@ -69,7 +70,7 @@ router.post('/mint-and-transfer', async (req, res) => {
     }
 
     // Use the Consent NFT Token ID
-    const tokenId = TokenId.fromString('0.0.6886067');
+    const tokenId = TokenId.fromString(process.env.HEDERA_RESEARCH_CONSENT_NFT_ID || '0.0.6886067');
 
     // Create consent hash for off-chain storage
     const consentPayload = {
@@ -332,7 +333,7 @@ router.post('/genomic-passport', async (req, res) => {
     }
 
     // Use the dedicated Ziva Passport NFT Token ID
-    const tokenId = TokenId.fromString('0.0.6886170');
+    const tokenId = TokenId.fromString(process.env.HEDERA_PASSPORT_NFT_ID || '0.0.6886170');
 
     // Create genomic passport hash
     const passportPayload = {
@@ -458,6 +459,326 @@ router.post('/genomic-passport', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to mint Ziva Passport NFT',
+      error: error.message 
+    });
+  }
+});
+
+// POST /api/consent/data-sync - Mint data sync consent NFT for user
+router.post('/data-sync', async (req, res) => {
+  try {
+    const { accountId } = req.body;
+
+    if (!accountId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: accountId'
+      });
+    }
+
+    // Check if user already has a data sync consent NFT
+    const existingActiveDataSyncConsent = await Consent.findOne({
+      hederaAccountId: accountId,
+      consentType: 'data_sync',
+      isActive: true
+    });
+
+    if (existingActiveDataSyncConsent) {
+      return res.status(200).json({
+        success: true,
+        message: 'User already has an active data sync consent NFT',
+        existingConsent: {
+          tokenId: existingActiveDataSyncConsent.consentNFTTokenId,
+          serialNumber: existingActiveDataSyncConsent.consentNFTSerialNumber,
+          mintedAt: existingActiveDataSyncConsent.nftMintedAt
+        }
+      });
+    }
+
+    // Allow creating new consent even if there are revoked ones
+    console.log(`🔄 Creating new data sync consent for account ${accountId}`);
+
+    // Use the dedicated Data Sync NFT Token ID
+    const tokenId = TokenId.fromString(process.env.HEDERA_DATA_SYNC_NFT_ID || '0.0.123456');
+
+    // Create data sync consent hash
+    const dataSyncPayload = {
+      type: 'data_sync_consent',
+      accountId: accountId,
+      timestamp: new Date().toISOString(),
+      purpose: 'genomic_data_synchronization'
+    };
+
+    const dataSyncHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify(dataSyncPayload))
+      .digest('hex');
+
+    // Create consent record first
+    const dataSyncConsent = new Consent({
+      consentId: `DATA_SYNC_${accountId}_${Date.now()}`,
+      patientId: accountId, // Use accountId as patientId for data sync
+      hederaAccountId: accountId,
+      consentType: 'data_sync',
+      consentStatus: 'granted',
+      dataTypes: ['whole_genome', 'exome', 'targeted_panel'], // Use valid enum values
+      purposes: ['data_synchronization'],
+      validFrom: new Date(),
+      validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+      consentText: `Data Sync Consent for genomic data synchronization for account ${accountId}`,
+      consentVersion: '1.0',
+      language: 'en',
+      consentHash: dataSyncHash,
+      signatureMethod: 'wallet_signature', // Use valid enum value
+      signatureTimestamp: new Date(),
+      patientSignature: 'nft_minted',
+      isActive: true,
+      topicId: hederaService.genomicTopicId || '0.0.6882233',
+      nftMintedAt: new Date()
+    });
+
+    // Mint the data sync consent NFT
+    const mintTx = new TokenMintTransaction()
+      .setTokenId(tokenId)
+      .setMetadata([Buffer.from(dataSyncHash.substring(0, 8))]) // 8-byte timestamp
+      .freezeWith(hederaService.client);
+
+    const mintTxResponse = await mintTx.execute(hederaService.client);
+    const mintReceipt = await mintTxResponse.getReceipt(hederaService.client);
+    
+    console.log('Mint receipt:', mintReceipt);
+    console.log('Serials:', mintReceipt.serials);
+    
+    if (!mintReceipt.serials || mintReceipt.serials.length === 0) {
+      throw new Error('No serials returned from mint transaction');
+    }
+    
+    const serial = mintReceipt.serials[0].toString();
+
+    console.log(`✅ Minted Data Sync Consent NFT: Serial #${serial} for account ${accountId}`);
+
+    // Transfer NFT to user
+    const transferTx = new TransferTransaction()
+      .addNftTransfer(tokenId, serial, hederaService.operatorId, HederaAccountId.fromString(accountId))
+      .freezeWith(hederaService.client);
+
+    const transferTxResponse = await transferTx.execute(hederaService.client);
+    const xferRx = await transferTxResponse.getReceipt(hederaService.client);
+
+    console.log(`✅ Transferred Data Sync Consent NFT to user: ${accountId}`);
+
+    // Update consent record with NFT details
+    dataSyncConsent.consentNFTTokenId = tokenId.toString();
+    dataSyncConsent.consentNFTSerialNumber = serial.toString();
+    dataSyncConsent.consentNFTTransactionId = xferRx.transactionId ? xferRx.transactionId.toString() : transferTxResponse.transactionId.toString();
+    dataSyncConsent.consentTransactionId = transferTxResponse.transactionId.toString();
+
+    await dataSyncConsent.save();
+
+    console.log(`✅ Data Sync Consent saved to database with NFT Serial #${serial}`);
+
+    // Submit to HCS for audit trail
+    const hcsMessage = `DATA_SYNC_CONSENT:${accountId}:${dataSyncHash}:${serial}:${new Date().toISOString()}`;
+    const hcsTx = new TopicMessageSubmitTransaction()
+      .setTopicId(hederaService.genomicTopicId)
+      .setMessage(hcsMessage)
+      .freezeWith(hederaService.client);
+
+    await hcsTx.execute(hederaService.client);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        consentId: dataSyncConsent.consentId,
+        consentNFTTokenId: dataSyncConsent.consentNFTTokenId,
+        consentNFTSerialNumber: dataSyncConsent.consentNFTSerialNumber,
+        consentNFTTransactionId: dataSyncConsent.consentNFTTransactionId,
+        consentHash: dataSyncConsent.consentHash,
+        mintedAt: dataSyncConsent.nftMintedAt
+      },
+      message: 'Data Sync Consent NFT minted and transferred successfully'
+    });
+
+  } catch (error) {
+    console.error('Error minting Data Sync Consent NFT:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mint Data Sync Consent NFT',
+      error: error.message 
+    });
+  }
+});
+
+// GET /api/consent/data-sync/status/:accountId - Check data sync consent status
+router.get('/data-sync/status/:accountId', async (req, res) => {
+  try {
+    const { accountId } = req.params;
+
+    if (!accountId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required parameter: accountId'
+      });
+    }
+
+    // Find data sync consent for this account
+    const dataSyncConsent = await Consent.findOne({
+      hederaAccountId: accountId,
+      consentType: 'data_sync'
+    }).sort({ createdAt: -1 }); // Get the most recent one
+
+    if (!dataSyncConsent) {
+      return res.status(200).json({
+        success: true,
+        consent: null,
+        message: 'No data sync consent found for this account'
+      });
+    }
+
+    // Verify NFT exists and is valid on Hedera network
+    let nftValid = false;
+    let nftError = null;
+    
+    try {
+      if (dataSyncConsent.consentNFTTokenId && dataSyncConsent.consentNFTSerialNumber) {
+        const tokenId = TokenId.fromString(dataSyncConsent.consentNFTTokenId);
+        const serialNumber = parseInt(dataSyncConsent.consentNFTSerialNumber);
+        
+        // Check if NFT exists and is owned by the account
+        const nftInfo = await new TokenNftInfoQuery()
+          .setTokenId(tokenId)
+          .setNftId(new NftId(tokenId, serialNumber))
+          .execute(hederaService.client);
+        
+        if (nftInfo && nftInfo.length > 0) {
+          const nft = nftInfo[0];
+          nftValid = nft.accountId.toString() === accountId;
+          console.log(`🔍 NFT validation for account ${accountId}:`, {
+            tokenId: dataSyncConsent.consentNFTTokenId,
+            serialNumber: dataSyncConsent.consentNFTSerialNumber,
+            owner: nft.accountId.toString(),
+            isValid: nftValid
+          });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error validating NFT on Hedera:', error);
+      nftError = error.message;
+    }
+
+    // Determine final active status - must be active in DB AND valid on Hedera
+    const finalIsActive = dataSyncConsent.isActive && nftValid;
+
+    res.status(200).json({
+      success: true,
+      consent: {
+        consentId: dataSyncConsent.consentId,
+        consentNFTTokenId: dataSyncConsent.consentNFTTokenId,
+        consentNFTSerialNumber: dataSyncConsent.consentNFTSerialNumber,
+        consentNFTTransactionId: dataSyncConsent.consentNFTTransactionId,
+        consentHash: dataSyncConsent.consentHash,
+        isActive: finalIsActive,
+        dbIsActive: dataSyncConsent.isActive,
+        nftValid: nftValid,
+        nftError: nftError,
+        validFrom: dataSyncConsent.validFrom,
+        validUntil: dataSyncConsent.validUntil,
+        mintedAt: dataSyncConsent.nftMintedAt,
+        revokedAt: dataSyncConsent.revokedAt,
+        revocationReason: dataSyncConsent.revocationReason,
+        createdAt: dataSyncConsent.createdAt,
+        updatedAt: dataSyncConsent.updatedAt
+      },
+      message: 'Data sync consent status retrieved successfully'
+    });
+
+  } catch (error) {
+    console.error('Error checking data sync consent status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check data sync consent status',
+      error: error.message 
+    });
+  }
+});
+
+// POST /api/consent/data-sync/revoke/:accountId - Revoke data sync consent
+router.post('/data-sync/revoke/:accountId', async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    const { reason } = req.body;
+
+    if (!accountId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required parameter: accountId'
+      });
+    }
+
+    // Find active data sync consent for this account
+    const dataSyncConsent = await Consent.findOne({
+      hederaAccountId: accountId,
+      consentType: 'data_sync',
+      isActive: true
+    });
+
+    if (!dataSyncConsent) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active data sync consent found for this account'
+      });
+    }
+
+    // Update consent record to mark as revoked
+    dataSyncConsent.isActive = false;
+    dataSyncConsent.revokedAt = new Date();
+    dataSyncConsent.revocationReason = reason || 'User requested revocation';
+    dataSyncConsent.updatedAt = new Date();
+
+    await dataSyncConsent.save();
+
+    console.log(`✅ Data sync consent revoked for account ${accountId}`);
+
+    // Submit revocation to HCS for audit trail
+    const revocationPayload = {
+      type: 'data_sync_consent_revocation',
+      accountId: accountId,
+      consentId: dataSyncConsent.consentId,
+      tokenId: dataSyncConsent.consentNFTTokenId,
+      serialNumber: dataSyncConsent.consentNFTSerialNumber,
+      reason: reason || 'User requested revocation',
+      timestamp: new Date().toISOString()
+    };
+
+    const revocationHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify(revocationPayload))
+      .digest('hex');
+
+    const hcsMessage = `DATA_SYNC_REVOCATION:${accountId}:${revocationHash}:${new Date().toISOString()}`;
+    const hcsTx = new TopicMessageSubmitTransaction()
+      .setTopicId(hederaService.genomicTopicId)
+      .setMessage(hcsMessage)
+      .freezeWith(hederaService.client);
+
+    await hcsTx.execute(hederaService.client);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        consentId: dataSyncConsent.consentId,
+        revokedAt: dataSyncConsent.revokedAt,
+        revocationReason: dataSyncConsent.revocationReason,
+        revocationHash: revocationHash
+      },
+      message: 'Data sync consent revoked successfully'
+    });
+
+  } catch (error) {
+    console.error('Error revoking data sync consent:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to revoke data sync consent',
       error: error.message 
     });
   }

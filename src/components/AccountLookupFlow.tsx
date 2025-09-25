@@ -17,17 +17,21 @@ import {
   CheckCircle as CheckIcon,
 } from "@mui/icons-material";
 import { apiService } from "../services/api";
+import DataSyncConsentDialog from "./DataSyncConsentDialog";
+import { HEDERA_CONFIG } from "../config/constants";
 
 interface AccountLookupFlowProps {
   accountId: string;
   onAccountFound: (userData: any) => void;
   onBackToWallet: () => void;
+  walletInterface: any;
 }
 
 const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
   accountId,
   onAccountFound,
   onBackToWallet,
+  walletInterface,
 }) => {
   const [step, setStep] = useState<"search" | "verify" | "success">("search");
   const [iHopeId, setIHopeId] = useState("");
@@ -35,6 +39,8 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [showDataSyncConsent, setShowDataSyncConsent] = useState(false);
+  const [dataSyncLoading, setDataSyncLoading] = useState(false);
 
   const handleSearchAccount = async () => {
     if (!iHopeId.trim()) {
@@ -83,11 +89,8 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
       });
 
       if (response.success) {
-        setStep("success");
-        // Auto-proceed to main app after a short delay
-        setTimeout(() => {
-          onAccountFound(response.user);
-        }, 2000);
+        // Show data sync consent dialog instead of proceeding directly
+        setShowDataSyncConsent(true);
       } else {
         setError("Date of birth does not match our records. Please try again.");
       }
@@ -97,6 +100,95 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDataSyncConsent = async () => {
+    try {
+      setDataSyncLoading(true);
+      setError(null);
+
+      console.log("🔐 Opening wallet to sign data sync consent transaction...");
+
+      if (!walletInterface) {
+        throw new Error(
+          "Wallet not connected. Please connect your wallet first.",
+        );
+      }
+
+      // Use native HTS NFT flow for data sync consent (same as ConsentManagement)
+      const { TokenId } = await import("@hashgraph/sdk");
+      const dataSyncTokenId = TokenId.fromString(
+        HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID,
+      );
+
+      console.log(
+        "📱 Wallet should now open for data sync token association...",
+      );
+      console.log("📋 Data sync token association details:", {
+        tokenId: dataSyncTokenId.toString(),
+        purpose: "Associate with Data Sync Consent NFT Collection",
+        type: "data_sync",
+        description: "Enable data synchronization across research platforms",
+        action: "Data Sync Token Association (required before receiving NFTs)",
+      });
+
+      // Step 1: User signs token association transaction
+      const associationTransactionId =
+        await walletInterface.associateToken(dataSyncTokenId);
+
+      if (!associationTransactionId) {
+        throw new Error("Token association failed or was rejected.");
+      }
+
+      console.log("✅ Token association successful:", associationTransactionId);
+
+      // Step 2: Backend mints and transfers the NFT
+      const dataSyncResponse = await fetch(
+        "http://localhost:5000/api/consent/data-sync",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ accountId }),
+        },
+      );
+
+      if (!dataSyncResponse.ok) {
+        const errorText = await dataSyncResponse.text();
+        throw new Error(`Backend error: ${errorText}`);
+      }
+
+      const dataSyncResult = await dataSyncResponse.json();
+      console.log(
+        "✅ Data sync consent NFT minted and transferred:",
+        dataSyncResult,
+      );
+
+      // Proceed to main app
+      setShowDataSyncConsent(false);
+      setStep("success");
+      setTimeout(() => {
+        onAccountFound(userData);
+      }, 1000);
+    } catch (error: any) {
+      console.error("Error signing data sync transaction:", error);
+      setError(
+        error.message ||
+          "Failed to create data sync consent. Please try again.",
+      );
+    } finally {
+      setDataSyncLoading(false);
+    }
+  };
+
+  const handleDataSyncDecline = () => {
+    // User declined data sync, proceed to main app anyway
+    setShowDataSyncConsent(false);
+    setStep("success");
+    setTimeout(() => {
+      onAccountFound(userData);
+    }, 1000);
   };
 
   const handleBackToSearch = () => {
@@ -267,7 +359,7 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
               borderRadius: 2,
             }}
           >
-            {loading ? "Verifying..." : "Enter Date Of Birth"}
+            {loading ? "Verifying..." : "Submit and Sync Data"}
           </Button>
         </Box>
 
@@ -327,6 +419,16 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
       {step === "search" && renderSearchStep()}
       {step === "verify" && renderVerifyStep()}
       {step === "success" && renderSuccessStep()}
+
+      {/* Data Sync Consent Dialog */}
+      <DataSyncConsentDialog
+        open={showDataSyncConsent}
+        onClose={() => setShowDataSyncConsent(false)}
+        onConsent={handleDataSyncConsent}
+        onDecline={handleDataSyncDecline}
+        loading={dataSyncLoading}
+        userData={userData}
+      />
     </Box>
   );
 };

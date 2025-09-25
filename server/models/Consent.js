@@ -28,7 +28,8 @@ const consentSchema = new mongoose.Schema({
       'data_storage',
       'ai_analysis',
       'commercial_use',
-      'genomic_passport'  // New: for genomic passport NFTs
+      'genomic_passport',  // New: for genomic passport NFTs
+      'data_sync'  // New: for data synchronization consent
     ],
     required: true
   },
@@ -55,7 +56,8 @@ const consentSchema = new mongoose.Schema({
       'disease_prediction',
       'ancestry_analysis',
       'pharmacogenomics',
-      'data_ownership_proof'  // New: for genomic passport NFTs
+      'data_ownership_proof',  // New: for genomic passport NFTs
+      'data_synchronization'  // New: for data sync consent
     ]
   }],
   
