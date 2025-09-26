@@ -32,6 +32,7 @@ import ConsentManagement from "./ConsentManagement";
 import ActivityTab from "./ActivityTab";
 import DataSyncManagement from "./DataSyncManagement";
 import DataSyncConsentDialog from "./DataSyncConsentDialog";
+import AITab from "./AITab";
 import rdzLogo from "../assets/RDZ Health.png";
 import { ReactComponent as ProfileIcon } from "../assets/profile_icon_color.svg";
 import { ReactComponent as DataSharingIcon } from "../assets/data_icon_color.svg";
@@ -150,8 +151,8 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
         );
       case 2: // Activity
         return <ActivityTab walletInterface={walletInterface} />;
-      case 3: // Chat
-        return <ChatTab walletInterface={walletInterface} />;
+      case 3: // AI
+        return <AITab />;
       case 4: // Wallet
         return <WalletTab />;
       case 5: // Data Sync
@@ -268,7 +269,7 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
             }
           />
           <BottomNavigationAction
-            label="Chat"
+            label="AI"
             icon={
               currentTab === 3 ? (
                 <ChatIcon style={{ width: 24, height: 24 }} />
@@ -830,26 +831,5 @@ const DataSharingTab: React.FC<{
     </Box>
   );
 };
-
-// Chat Tab Component
-const ChatTab: React.FC<{ walletInterface: any }> = ({ walletInterface }) => (
-  <Box>
-    <Typography
-      variant="h5"
-      sx={{ mb: 3, fontWeight: "bold", color: "#0d0d0d" }}
-    >
-      Chat
-    </Typography>
-
-    <Card sx={{ p: 2, mb: 2 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        AI Health Assistant
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        Chat with our AI assistant about your genomic data
-      </Typography>
-    </Card>
-  </Box>
-);
 
 export default ZivaHealthApp;

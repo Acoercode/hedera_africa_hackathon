@@ -56,6 +56,11 @@ CLIENT_URL=http://localhost:3000
 ENCRYPTION_KEY=your-encryption-key-here
 ```
 
+### AI Services
+```bash
+OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
 ## Token ID Usage
 
 - **HEDERA_RESEARCH_CONSENT_NFT_ID**: Used for consent NFTs (research participation)
@@ -84,3 +89,4 @@ ENCRYPTION_KEY=your-encryption-key-here
 - All token IDs should be created using the Hedera setup script
 - Topic IDs are automatically created if they don't exist
 - Frontend variables must have `REACT_APP_` prefix to be accessible in React
+- **OPENAI_API_KEY**: Required for AI features (FHIR translation, diagnostic chatbot, genomic insights)

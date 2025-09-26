@@ -7,7 +7,6 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 // Import routes
-const genomicRoutes = require('./routes/genomic');
 const consentRoutes = require('./routes/consent');
 const aiRoutes = require('./routes/ai');
 const incentiveRoutes = require('./routes/incentives');
@@ -57,7 +56,6 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/genomic', genomicRoutes);
 app.use('/api/consent', consentRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/incentives', incentiveRoutes);
