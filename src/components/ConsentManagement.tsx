@@ -199,7 +199,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
       setConsents(mergedConsents);
     } catch (err) {
-      setError("Failed to load consents");
+      setError("Something went wrong, try again");
       console.error("Error loading consents:", err);
     } finally {
       setLoading(false);
@@ -250,9 +250,12 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         // Log activity as data type (genomic passport creation)
         await logPassportActivity(selectedConsent, "created");
 
-        // Set success message
+        // Set success message with incentive info
+        const incentiveInfo = passportResult.incentive
+          ? ` You earned ${passportResult.incentive.amount} RDZ incentive tokens!`
+          : "";
         setSuccess(
-          `Genomic passport NFT ${passportResult.consentNFTTokenId}#${passportResult.consentNFTSerialNumber} created successfully.`,
+          `Genomic passport NFT ${passportResult.passport.consentNFTTokenId}#${passportResult.passport.consentNFTSerialNumber} created successfully.${incentiveInfo}`,
         );
 
         // Reload consents to reflect changes
@@ -276,8 +279,17 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         // Log activity for data sync consent
         await logConsentActivity(selectedConsent, "created");
 
+        // Set success message with incentive info
+        let incentiveInfo = "";
+        if (dataSyncResult.data.incentive) {
+          if (dataSyncResult.data.incentive.success) {
+            incentiveInfo = ` You earned ${dataSyncResult.data.incentive.amount} RDZ incentive tokens!`;
+          } else if (dataSyncResult.data.incentive.requiresAssociation) {
+            incentiveInfo = `\n\n🎁 To earn ${dataSyncResult.data.incentive.amount} RDZ tokens:\n1. Go to the Wallet tab\n2. Click 'Associate with RDZ Token'\n3. Sign the transaction in your wallet\n4. Return here to receive your tokens!`;
+          }
+        }
         setSuccess(
-          `Data sync consent NFT ${dataSyncResult.data.consentNFTTokenId}#${dataSyncResult.data.consentNFTSerialNumber} created successfully.`,
+          `Data sync consent NFT ${dataSyncResult.data.consentNFTTokenId}#${dataSyncResult.data.consentNFTSerialNumber} created successfully.${incentiveInfo}`,
         );
 
         // Reload consents to reflect changes
@@ -300,14 +312,18 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       // Log activity
       await logConsentActivity(selectedConsent, "granted");
 
+      // Set success message with incentive info
+      const incentiveInfo = mintResult.incentive
+        ? ` You earned ${mintResult.incentive.amount} RDZ incentive tokens!`
+        : "";
       setSuccess(
-        `Consent enabled and NFT ${mintResult.consentNFTTokenId}#${mintResult.consentNFTSerialNumber} issued.`,
+        `Consent enabled and NFT ${mintResult.consentNFTTokenId}#${mintResult.consentNFTSerialNumber} issued.${incentiveInfo}`,
       );
 
       // Reload consents to reflect changes
       await loadConsents();
     } catch (err: any) {
-      setError(err.message || "Failed to enable consent. Please try again.");
+      setError("Something went wrong, try again");
       console.error("Consent enable error:", err);
     } finally {
       setProcessing(null);
@@ -585,7 +601,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       }
     } catch (error) {
       console.error("Error revoking consent:", error);
-      setError("Failed to revoke consent. Please try again.");
+      setError("Something went wrong, try again");
     }
   };
 
@@ -1128,6 +1144,16 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                     sign a "RDZ Passport Creation" transaction (Token ID:
                     {HEDERA_CONFIG.PASSPORT_NFT_TOKEN_ID}) to create your
                     genomic passport.
+                    <br />
+                    <br />
+                    <strong>🎁 Incentive Reward:</strong> You will earn 200 RDZ
+                    incentive tokens for creating your genomic passport!
+                    <br />
+                    <br />
+                    <strong>💡 Note:</strong> To receive incentive tokens, you
+                    must first associate your wallet with the RDZ token
+                    (0.0.6894102). If not associated, you'll receive
+                    instructions after passport creation.
                   </Typography>
                 </Alert>
               ) : selectedConsent?.consentType === "data_sync" ? (
@@ -1145,6 +1171,16 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                     sign a "Data Sync Token Association" transaction (Token ID:
                     {HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID}) to enable data
                     synchronization.
+                    <br />
+                    <br />
+                    <strong>🎁 Incentive Reward:</strong> You will earn 100 RDZ
+                    incentive tokens for enabling data synchronization!
+                    <br />
+                    <br />
+                    <strong>💡 Note:</strong> To receive incentive tokens, you
+                    must first associate your wallet with the RDZ token
+                    (0.0.6894102). If not associated, you'll receive
+                    instructions after consent creation.
                   </Typography>
                 </Alert>
               ) : (
@@ -1154,6 +1190,16 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                     the Hedera blockchain that represents your consent. This
                     provides a permanent, auditable record of your agreement.
                     Your wallet will open to sign the transaction.
+                    <br />
+                    <br />
+                    <strong>🎁 Incentive Reward:</strong> You will earn 150 RDZ
+                    incentive tokens for participating in medical research!
+                    <br />
+                    <br />
+                    <strong>💡 Note:</strong> To receive incentive tokens, you
+                    must first associate your wallet with the RDZ token
+                    (0.0.6894102). If not associated, you'll receive
+                    instructions after consent creation.
                   </Typography>
                 </Alert>
               )}
@@ -1204,7 +1250,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                 : selectedConsent?.consentType === "data_sync"
                   ? "Enable Data Synchronization"
                   : selectedConsent?.consentId?.includes("-")
-                    ? "Re-enable & Create New Consent NFT"
+                    ? "Enable Medical Research Consent"
                     : "Accept & Create Consent NFT"}
           </Button>
         </DialogActions>

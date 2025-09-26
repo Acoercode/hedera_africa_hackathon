@@ -2,10 +2,47 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const Consent = require('../models/Consent');
+const Activity = require('../models/Activity');
 const hederaService = require('../services/hederaService');
 const incentiveService = require('../services/incentiveService');
 const { v4: uuidv4 } = require('uuid');
 const { TokenId, TokenMintTransaction, TransferTransaction, AccountId: HederaAccountId, TopicMessageSubmitTransaction, TokenNftInfoQuery, NftId } = require('@hashgraph/sdk');
+
+// Helper function to log incentive activities
+const logIncentiveActivity = async (accountId, incentiveResult, consentId) => {
+  try {
+    if (!incentiveResult) return;
+
+    const activityId = uuidv4();
+    const activity = new Activity({
+      activityId,
+      userId: accountId,
+      activityName: `incentive_${incentiveResult.success ? 'awarded' : 'failed'}`,
+      activityDescription: incentiveResult.success 
+        ? `Earned ${incentiveResult.amount} RDZ tokens for ${incentiveResult.action}`
+        : `Incentive not awarded: ${incentiveResult.message || 'Unknown error'}`,
+      activityType: 'incentive',
+      metadata: {
+        incentiveResult: {
+          success: incentiveResult.success,
+          amount: incentiveResult.amount,
+          action: incentiveResult.action,
+          transactionId: incentiveResult.transactionId,
+          tokenId: incentiveResult.tokenId,
+          error: incentiveResult.error,
+          requiresAssociation: incentiveResult.requiresAssociation
+        },
+        consentId: consentId
+      },
+      transactionId: incentiveResult.transactionId || `incentive_${activityId}`
+    });
+
+    await activity.save();
+    console.log(`✅ Logged incentive activity: ${incentiveResult.success ? 'awarded' : 'failed'} for ${accountId}`);
+  } catch (error) {
+    console.error('❌ Failed to log incentive activity:', error);
+  }
+};
 
 // GET /api/consent - Get all consents
 router.get('/', async (req, res) => {
@@ -161,6 +198,27 @@ router.post('/mint-and-transfer', async (req, res) => {
       // Continue anyway - the NFT is already minted and transferred
     }
 
+    // Mint incentive tokens for research consent
+    let incentiveResult = null;
+    try {
+      incentiveResult = await hederaService.incentiveService.mintAndTransferIncentive(
+        consent.hederaAccountId,
+        'research_consent',
+        consent.consentId
+      );
+      if (incentiveResult && incentiveResult.success) {
+        console.log(`🎁 Research consent incentive tokens awarded: ${incentiveResult.amount} tokens`);
+      } else if (incentiveResult && !incentiveResult.success) {
+        console.log(`⚠️ Research consent incentive not awarded: ${incentiveResult.message}`);
+      }
+    } catch (incentiveError) {
+      console.error('❌ Failed to award research consent incentive tokens:', incentiveError);
+      // Don't fail the main request if incentive fails
+    }
+
+    // Log incentive activity
+    await logIncentiveActivity(accountId, incentiveResult, consent.consentId);
+
     res.json({
       success: true,
       tokenIdStr: tokenId.toString(),
@@ -184,6 +242,16 @@ router.post('/mint-and-transfer', async (req, res) => {
         validFrom: consent.validFrom,
         validUntil: consent.validUntil
       },
+      incentive: incentiveResult ? {
+        success: incentiveResult.success,
+        amount: incentiveResult.amount,
+        action: incentiveResult.action,
+        transactionId: incentiveResult.transactionId,
+        tokenId: incentiveResult.tokenId,
+        error: incentiveResult.error,
+        message: incentiveResult.message,
+        requiresAssociation: incentiveResult.requiresAssociation
+      } : null,
       message: 'Consent NFT minted and transferred successfully'
     });
 
@@ -454,6 +522,37 @@ router.post('/genomic-passport', async (req, res) => {
       message: 'Ziva Passport NFT minted and transferred successfully'
     });
 
+    // Mint incentive tokens for passport creation
+    let incentiveResult = null;
+    try {
+      incentiveResult = await hederaService.incentiveService.mintAndTransferIncentive(
+        accountId,
+        'passport_creation',
+        passportConsent.consentId
+      );
+      if (incentiveResult && incentiveResult.success) {
+        console.log(`🎁 Passport creation incentive tokens awarded: ${incentiveResult.amount} tokens`);
+      } else if (incentiveResult && !incentiveResult.success) {
+        console.log(`⚠️ Passport creation incentive not awarded: ${incentiveResult.message}`);
+      }
+    } catch (incentiveError) {
+      console.error('❌ Failed to award passport creation incentive tokens:', incentiveError);
+      // Don't fail the main request if incentive fails
+    }
+
+    // Log incentive activity
+    await logIncentiveActivity(accountId, incentiveResult, passportConsent.consentId);
+
+    // Add incentive info to response
+    if (incentiveResult) {
+      res.locals.incentive = {
+        amount: incentiveResult.amount,
+        action: incentiveResult.action,
+        transactionId: incentiveResult.transactionId,
+        tokenId: incentiveResult.tokenId
+      };
+    }
+
   } catch (error) {
     console.error('Error minting Ziva Passport NFT:', error);
     res.status(500).json({ 
@@ -586,6 +685,29 @@ router.post('/data-sync', async (req, res) => {
 
     await hcsTx.execute(hederaService.client);
 
+    // Mint incentive tokens for data sync consent
+    console.log('🔍 About to call incentive service for data sync consent...');
+    console.log('🔍 hederaService.incentiveService exists:', !!hederaService.incentiveService);
+    let incentiveResult = null;
+    try {
+      incentiveResult = await hederaService.incentiveService.mintAndTransferIncentive(
+        accountId,
+        'data_sync',
+        dataSyncConsent.consentId
+      );
+      if (incentiveResult && incentiveResult.success) {
+        console.log(`🎁 Data sync incentive tokens awarded: ${incentiveResult.amount} tokens`);
+      } else if (incentiveResult && !incentiveResult.success) {
+        console.log(`⚠️ Data sync incentive not awarded: ${incentiveResult.message}`);
+      }
+    } catch (incentiveError) {
+      console.error('❌ Failed to award data sync incentive tokens:', incentiveError);
+      // Don't fail the main request if incentive fails
+    }
+
+    // Log incentive activity
+    await logIncentiveActivity(accountId, incentiveResult, dataSyncConsent.consentId);
+
     res.status(200).json({
       success: true,
       data: {
@@ -594,7 +716,17 @@ router.post('/data-sync', async (req, res) => {
         consentNFTSerialNumber: dataSyncConsent.consentNFTSerialNumber,
         consentNFTTransactionId: dataSyncConsent.consentNFTTransactionId,
         consentHash: dataSyncConsent.consentHash,
-        mintedAt: dataSyncConsent.nftMintedAt
+        mintedAt: dataSyncConsent.nftMintedAt,
+        incentive: incentiveResult ? {
+          success: incentiveResult.success,
+          amount: incentiveResult.amount,
+          action: incentiveResult.action,
+          transactionId: incentiveResult.transactionId,
+          tokenId: incentiveResult.tokenId,
+          error: incentiveResult.error,
+          message: incentiveResult.message,
+          requiresAssociation: incentiveResult.requiresAssociation
+        } : null
       },
       message: 'Data Sync Consent NFT minted and transferred successfully'
     });

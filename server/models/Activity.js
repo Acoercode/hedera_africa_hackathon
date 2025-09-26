@@ -29,7 +29,7 @@ const activitySchema = new mongoose.Schema({
   },
   activityType: {
     type: String,
-    enum: ['consent', 'data', 'reward', 'security', 'ai', 'sharing'],
+    enum: ['consent', 'data', 'reward', 'incentive', 'security', 'ai', 'sharing'],
     required: true,
     index: true
   },

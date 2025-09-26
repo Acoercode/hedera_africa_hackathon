@@ -1,5 +1,6 @@
 const { Client, TopicCreateTransaction, TopicMessageSubmitTransaction, AccountId, PrivateKey, Hbar, TokenCreateTransaction, TokenType, TokenSupplyType, TokenMintTransaction, TransferTransaction, TokenNftInfoQuery, NftId } = require('@hashgraph/sdk');
 const crypto = require('crypto');
+const IncentiveService = require('./incentiveService');
 
 class HederaService {
   constructor() {
@@ -14,6 +15,7 @@ class HederaService {
     this.genomicDataPassportNFTTokenId = null;
     this.syncDataConsentNFTTokenId = null;
     this.initialized = false;
+    this.incentiveService = null;
   }
 
   async initialize() {
@@ -34,6 +36,10 @@ class HederaService {
       
       // Create or get genomic data topic
       await this.initializeGenomicTopic();
+      
+      // Initialize incentive service
+      this.incentiveService = new IncentiveService(this);
+      console.log('🎁 Incentive service initialized');
       
       this.initialized = true;
       console.log('✅ Hedera service initialized successfully');

@@ -1,90 +1,218 @@
-const hederaService = require('./hederaService');
+const { TokenId, TransferTransaction, AccountId, Hbar, AccountBalanceQuery, TokenAssociateTransaction } = require('@hashgraph/sdk');
 
 class IncentiveService {
-  constructor() {
-    this.incentiveMap = {
-      'consent_provided': 100,      // 100 GDI for consent
-      'data_uploaded': 500,         // 500 GDI for data upload
-      'data_accessed': 50,          // 50 GDI for each access
-      'ai_analysis_completed': 200, // 200 GDI for AI analysis
-      'research_participation': 1000, // 1000 GDI for research participation
-      'data_quality_high': 100,     // 100 GDI for high quality data
-      'consent_renewed': 75,        // 75 GDI for consent renewal
-      'feedback_provided': 25       // 25 GDI for feedback
+  constructor(hederaService) {
+    this.hederaService = hederaService;
+    this.incentiveTokenId = process.env.HEDERA_RDZ_INCENTIVE_TOKEN_ID || '0.0.6894102';
+    
+    // Incentive amounts for different actions
+    this.incentiveAmounts = {
+      data_sync: 100,        // 100 tokens for data sync consent
+      research_consent: 150, // 150 tokens for research consent
+      passport_creation: 200 // 200 tokens for passport creation
     };
   }
 
-  async calculateIncentives(action, dataType, patientId) {
-    // Base incentive amount
-    let baseAmount = this.incentiveMap[action] || 0;
-    
-    // Adjust based on data type
-    const dataTypeMultiplier = {
-      'whole_genome': 1.5,
-      'exome': 1.2,
-      'targeted_panel': 1.0,
-      'snp_array': 0.8,
-      'rna_seq': 1.3,
-      'methylation': 1.1
-    };
-    
-    const multiplier = dataTypeMultiplier[dataType] || 1.0;
-    const finalAmount = Math.round(baseAmount * multiplier);
-    
-    console.log(`💰 Calculated incentive: ${finalAmount} GDI for ${action} (${dataType})`);
-    
-    return finalAmount;
-  }
-
-  async distributeIncentives(patientAccountId, action, dataType, amount = null) {
+  /**
+   * Check if an account is associated with the incentive token
+   * @param {string} accountId - The account ID to check
+   * @returns {Promise<boolean>} - True if associated, false otherwise
+   */
+  async isAccountAssociated(accountId) {
     try {
-      const incentiveAmount = amount || await this.calculateIncentives(action, dataType);
+      const accountIdObj = AccountId.fromString(accountId);
+      const tokenId = TokenId.fromString(this.incentiveTokenId);
       
-      if (incentiveAmount > 0) {
-        const result = await hederaService.distributeIncentiveTokens(
-          patientAccountId, 
-          incentiveAmount, 
-          `${action}: ${dataType}`
-        );
-        
-        console.log(`✅ Distributed ${incentiveAmount} GDI tokens to ${patientAccountId}`);
-        return result;
+      const balanceQuery = new AccountBalanceQuery()
+        .setAccountId(accountIdObj);
+      
+      const balance = await balanceQuery.execute(this.hederaService.client);
+      
+      // Check if the account has the incentive token in its balance
+      if (balance.tokens && balance.tokens._map) {
+        return balance.tokens._map.has(this.incentiveTokenId);
       }
       
-      return { amount: 0, reason: 'No incentive for this action' };
+      return false;
     } catch (error) {
-      console.error('❌ Failed to distribute incentives:', error);
+      console.error(`Error checking token association for ${accountId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Automatically associate an account with the incentive token (admin signs)
+   * @param {string} accountId - The account ID to associate
+   * @returns {Promise<Object>} - Association result
+   */
+  async associateAccountWithToken(accountId) {
+    try {
+      console.log(`🔗 Admin associating account ${accountId} with incentive token ${this.incentiveTokenId}`);
+      
+      const accountIdObj = AccountId.fromString(accountId);
+      const tokenId = TokenId.fromString(this.incentiveTokenId);
+      
+      // Create association transaction - admin signs on behalf of user
+      const associateTx = new TokenAssociateTransaction()
+        .setAccountId(accountIdObj)
+        .setTokenIds([tokenId])
+        .freezeWith(this.hederaService.client);
+      
+      // Admin signs the transaction
+      const signedTx = associateTx.sign(this.hederaService.operatorKey);
+      const associateResponse = await signedTx.execute(this.hederaService.client);
+      const associateReceipt = await associateResponse.getReceipt(this.hederaService.client);
+      
+      console.log(`✅ Account ${accountId} successfully associated with incentive token ${this.incentiveTokenId}`);
+      console.log(`📋 Association Transaction ID: ${associateResponse.transactionId.toString()}`);
+      
+      return {
+        success: true,
+        transactionId: associateResponse.transactionId.toString(),
+        accountId: accountId,
+        tokenId: this.incentiveTokenId
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error associating account ${accountId} with incentive token:`, error);
+      return {
+        success: false,
+        error: error.message,
+        accountId: accountId,
+        tokenId: this.incentiveTokenId
+      };
+    }
+  }
+
+  /**
+   * Mint and transfer incentive tokens to a user
+   * @param {string} recipientAccountId - The user's Hedera account ID
+   * @param {string} action - The action that triggered the incentive (data_sync, research_consent, passport_creation)
+   * @param {string} consentId - The consent ID for tracking
+   * @returns {Promise<Object>} - Transaction details and amount
+   */
+  async mintAndTransferIncentive(recipientAccountId, action, consentId) {
+    try {
+      console.log(`🎁 Starting incentive transfer for action: ${action}, recipient: ${recipientAccountId}`);
+      console.log(`🔧 Incentive service config:`, {
+        tokenId: this.incentiveTokenId,
+        operatorId: this.hederaService.operatorId?.toString(),
+        clientInitialized: !!this.hederaService.client,
+        operatorKeyExists: !!this.hederaService.operatorKey
+      });
+
+      const amount = this.incentiveAmounts[action];
+      if (!amount) {
+        throw new Error(`Unknown incentive action: ${action}`);
+      }
+
+      // Check if recipient is associated with the incentive token
+      const isAssociated = await this.isAccountAssociated(recipientAccountId);
+      console.log(`🔍 Account ${recipientAccountId} associated with incentive token: ${isAssociated}`);
+      
+      if (!isAssociated) {
+        console.log(`⚠️ Account ${recipientAccountId} not associated with incentive token ${this.incentiveTokenId}`);
+        console.log(`💡 User needs to associate with token ${this.incentiveTokenId} to receive ${amount} RDZ tokens`);
+        
+        return {
+          success: false,
+          error: 'TOKEN_NOT_ASSOCIATED',
+          message: `To receive ${amount} RDZ incentive tokens, please associate your wallet with token ${this.incentiveTokenId}. You can do this in the Wallet tab.`,
+          amount: amount,
+          action: action,
+          recipientAccountId: recipientAccountId,
+          tokenId: this.incentiveTokenId,
+          requiresAssociation: true,
+          instructions: {
+            step1: "Go to the Wallet tab",
+            step2: "Click 'Associate with RDZ Token'",
+            step3: "Sign the association transaction in your wallet",
+            step4: "Return to perform the action to receive your tokens"
+          }
+        };
+      }
+
+      console.log(`🎁 Transferring ${amount} incentive tokens for ${action} to account ${recipientAccountId}`);
+
+      const tokenId = TokenId.fromString(this.incentiveTokenId);
+      const recipientId = AccountId.fromString(recipientAccountId);
+
+      // Create transfer transaction
+      const transferTx = new TransferTransaction()
+        .addTokenTransfer(tokenId, this.hederaService.operatorId, -amount) // Deduct from treasury
+        .addTokenTransfer(tokenId, recipientId, amount) // Add to recipient
+        .setTransactionMemo(`RDZ: ${action}`);
+
+      // Execute the transaction (client is already configured with operator)
+      const txResponse = await transferTx.execute(this.hederaService.client);
+      const receipt = await txResponse.getReceipt(this.hederaService.client);
+
+      console.log(`✅ Incentive tokens transferred successfully: ${amount} tokens to ${recipientAccountId}`);
+      console.log(`📋 Transaction ID: ${txResponse.transactionId.toString()}`);
+
+      return {
+        success: true,
+        amount: amount,
+        action: action,
+        recipientAccountId: recipientAccountId,
+        transactionId: txResponse.transactionId.toString(),
+        receipt: receipt,
+        tokenId: this.incentiveTokenId,
+        message: `You earned ${amount} RDZ incentive tokens!`
+      };
+
+    } catch (error) {
+      console.error(`❌ Error minting incentive tokens for ${action}:`, error);
       throw error;
     }
   }
 
-  async getIncentiveHistory(patientAccountId) {
-    // This would typically query Hedera for token transfer history
-    // For now, return a mock response
-    return {
-      patientAccountId,
-      totalEarned: 0,
-      transactions: []
-    };
+  /**
+   * Get incentive amount for a specific action
+   * @param {string} action - The action type
+   * @returns {number} - The incentive amount
+   */
+  getIncentiveAmount(action) {
+    return this.incentiveAmounts[action] || 0;
   }
 
-  async getIncentiveBalance(patientAccountId) {
-    // This would typically query Hedera for token balance
-    // For now, return a mock response
-    return {
-      patientAccountId,
-      balance: 0,
-      tokenId: hederaService.incentiveTokenId
-    };
+  /**
+   * Get all incentive amounts
+   * @returns {Object} - All incentive amounts
+   */
+  getAllIncentiveAmounts() {
+    return { ...this.incentiveAmounts };
   }
 
-  // Get incentive rates for display
-  getIncentiveRates() {
-    return {
-      rates: this.incentiveMap,
-      description: "Incentive tokens (GDI) are distributed for various actions to encourage data sharing and participation in genomic research."
-    };
+  /**
+   * Check for pending airdrops for a user
+   * @param {string} accountId - The account ID to check
+   * @returns {Promise<Object>} - Pending airdrops information
+   */
+  async getPendingAirdrops(accountId) {
+    try {
+      // This would typically query the Hedera Mirror Node API
+      // For now, we'll return a placeholder response
+      console.log(`🔍 Checking pending airdrops for account ${accountId}`);
+      
+      // TODO: Implement actual mirror node query
+      // const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}/airdrops/pending`);
+      
+      return {
+        success: true,
+        accountId: accountId,
+        pendingAirdrops: [],
+        message: 'No pending airdrops found'
+      };
+    } catch (error) {
+      console.error(`Error checking pending airdrops for ${accountId}:`, error);
+      return {
+        success: false,
+        error: error.message,
+        accountId: accountId
+      };
+    }
   }
 }
 
-module.exports = new IncentiveService();
+module.exports = IncentiveService;

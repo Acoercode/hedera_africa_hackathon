@@ -21,6 +21,7 @@ import {
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { apiService, NFT, IncentiveBalance } from "../services/api";
+import TokenAssociationDialog from "./TokenAssociationDialog";
 
 const WalletTab: React.FC = () => {
   const { walletInterface, accountId } = useWalletInterface();
@@ -28,6 +29,10 @@ const WalletTab: React.FC = () => {
   const [tokenBalance, setTokenBalance] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [incentiveAssociationInfo, setIncentiveAssociationInfo] =
+    useState<any>(null);
+  const [associationDialogOpen, setAssociationDialogOpen] = useState(false);
+  const [associating, setAssociating] = useState(false);
 
   // Load user data when wallet connects
   useEffect(() => {
@@ -50,6 +55,19 @@ const WalletTab: React.FC = () => {
       } catch (err) {
         console.log("Could not load incentive balance:", err);
         setTokenBalance(0);
+      }
+
+      // Load incentive association info
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/incentives/association-info/${accountId}`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setIncentiveAssociationInfo(data);
+        }
+      } catch (err) {
+        console.log("Could not load incentive association info:", err);
       }
 
       // Load real consent and passport NFTs
@@ -168,10 +186,10 @@ const WalletTab: React.FC = () => {
         </Box>
       </Card>
 
-      {/* GDI Token Balance */}
+      {/* RDZ Token Balance */}
       <Card sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          GDI Token Balance
+          RDZ Token Balance
         </Typography>
         <Box
           sx={{
@@ -181,15 +199,47 @@ const WalletTab: React.FC = () => {
           }}
         >
           <Typography variant="h4" color="primary">
-            {loading ? <CircularProgress size={32} /> : `${tokenBalance} GDI`}
+            {loading ? <CircularProgress size={32} /> : `${tokenBalance} RDZ`}
           </Typography>
-          <Button variant="outlined" size="small">
-            View on Explorer
-          </Button>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Genomic Data Incentive tokens earned from data sharing
+          RDZ tokens earned from actions in the application
         </Typography>
+
+        {/* Association Status and Button */}
+        {incentiveAssociationInfo && (
+          <Box sx={{ mt: 2 }}>
+            {incentiveAssociationInfo.associationRequired ? (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>Association Required:</strong> To receive RDZ
+                  incentive tokens, you must associate your wallet with the RDZ
+                  token.
+                </Typography>
+                <Button
+                  variant="contained"
+                  size="small"
+                  sx={{ mt: 1 }}
+                  onClick={() => setAssociationDialogOpen(true)}
+                  disabled={associating}
+                >
+                  {associating ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    "Associate with RDZ Token"
+                  )}
+                </Button>
+              </Alert>
+            ) : (
+              <Alert severity="success">
+                <Typography variant="body2">
+                  <strong>Associated:</strong> Your wallet is associated with
+                  RDZ token. You can receive incentive tokens!
+                </Typography>
+              </Alert>
+            )}
+          </Box>
+        )}
       </Card>
 
       {/* My NFTs */}
@@ -304,6 +354,20 @@ const WalletTab: React.FC = () => {
           {loading ? "Refreshing..." : "Refresh Wallet Data"}
         </Button>
       </Box>
+
+      {/* Token Association Dialog */}
+      {accountId && (
+        <TokenAssociationDialog
+          open={associationDialogOpen}
+          onClose={() => setAssociationDialogOpen(false)}
+          accountId={accountId}
+          tokenId={incentiveAssociationInfo?.tokenId || "0.0.6905402"}
+          onAssociationComplete={() => {
+            // Reload association info after completion
+            loadUserData();
+          }}
+        />
+      )}
     </Box>
   );
 };

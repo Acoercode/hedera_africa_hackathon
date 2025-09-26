@@ -27,6 +27,7 @@ import {
   Share as ShareIcon,
   History as HistoryIcon,
   Refresh as RefreshIcon,
+  MonetizationOn as IncentiveIcon,
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { apiService } from "../services/api";
@@ -98,6 +99,8 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
         return <UploadIcon color="primary" />;
       case "reward":
         return <StarIcon color="secondary" />;
+      case "incentive":
+        return <IncentiveIcon color="warning" />;
       case "ai":
         return <ScienceIcon color="info" />;
       default:
@@ -113,6 +116,8 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
         return "primary";
       case "reward":
         return "secondary";
+      case "incentive":
+        return "warning";
       case "ai":
         return "info";
       default:
@@ -127,7 +132,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
           const types = [
             "consent",
             "data",
-            "reward",
+            "incentive",
             "security",
             "ai",
             "sharing",
@@ -199,7 +204,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
           <Tab label="All Activities" />
           <Tab label="Consent" />
           <Tab label="Data" />
-          <Tab label="Rewards" />
+          <Tab label="Incentives" />
           <Tab label="AI" />
         </Tabs>
       </Paper>
@@ -238,13 +243,13 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
           <Card sx={{ p: 2, textAlign: "center" }}>
             <Typography
               variant="h4"
-              color="secondary.main"
+              color="warning.main"
               sx={{ fontWeight: "bold" }}
             >
-              {activities.filter((a) => a.activityType === "reward").length}
+              {activities.filter((a) => a.activityType === "incentive").length}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Rewards Earned
+              Incentives Earned
             </Typography>
           </Card>
         </Grid>
