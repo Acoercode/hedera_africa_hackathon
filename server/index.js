@@ -71,7 +71,6 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ MongoDB connected successfully');
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error);
     process.exit(1);
@@ -82,7 +81,6 @@ const connectDB = async () => {
 const initializeHedera = async () => {
   try {
     await hederaService.initialize();
-    console.log('✅ Hedera service initialized successfully');
   } catch (error) {
     console.error('❌ Hedera service initialization error:', error);
     // Don't exit - allow server to run without Hedera for development

@@ -136,37 +136,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({
           if (consentResponse.ok) {
             const consentData = await consentResponse.json();
 
-            console.log("🔍 Data sync consent status:", {
-              success: consentData.success,
-              hasConsent: !!consentData.consent,
-              isActive: consentData.consent?.isActive,
-              dbIsActive: consentData.consent?.dbIsActive,
-              nftValid: consentData.consent?.nftValid,
-              revokedAt: consentData.consent?.revokedAt,
-            });
-
             if (
               consentData.success &&
               consentData.consent &&
               consentData.consent.isActive
             ) {
               // User has consented to data sync - show genomic data
-              console.log(
-                "✅ User has data sync consent - showing genomic data",
-              );
               setGenomicData(userData.genomicData);
             } else {
               // User has not consented to data sync or consent is rejected - hide genomic data
-              console.log(
-                "❌ User has not consented to data sync or consent is rejected - hiding genomic data",
-              );
               setGenomicData(null);
             }
           } else {
             // If we can't check consent status, err on the side of caution and hide data
-            console.log(
-              "⚠️ Could not check data sync consent - hiding genomic data for privacy",
-            );
             setGenomicData(null);
           }
         } catch (consentError) {
@@ -206,6 +188,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({
 
   useEffect(() => {
     fetchUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId]);
 
   const value: UserContextType = {

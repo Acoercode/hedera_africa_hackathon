@@ -13,10 +13,8 @@ import {
   Step,
   StepLabel,
   StepContent,
-  Paper,
-  Divider,
 } from "@mui/material";
-import { CheckCircle, Warning, Info } from "@mui/icons-material";
+import { CheckCircle, Info } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 
 interface TokenAssociationDialogProps {
@@ -100,33 +98,15 @@ const TokenAssociationDialog: React.FC<TokenAssociationDialogProps> = ({
     setError(null);
 
     try {
-      console.log(
-        "🔐 Opening wallet to sign RDZ token association transaction...",
-      );
-
       // Use the wallet interface's associateToken method (same as consent flows)
       const { TokenId } = await import("@hashgraph/sdk");
       const tokenIdObj = TokenId.fromString(tokenId);
-
-      console.log("📱 Wallet should now open for RDZ token association...");
-      console.log("📋 RDZ token association details:", {
-        tokenId: tokenIdObj.toString(),
-        purpose: "Associate with RDZ Incentive Token",
-        type: "incentive_token",
-        description: "Enable receiving RDZ incentive tokens for data sharing",
-        action:
-          "RDZ Token Association (required before receiving incentive tokens)",
-      });
 
       // Use the wallet interface's associateToken method
       const associationTransactionId =
         await walletInterface.associateToken(tokenIdObj);
 
       if (associationTransactionId) {
-        console.log(
-          "✅ RDZ token association successful:",
-          associationTransactionId,
-        );
         setStep(2); // Success
         onAssociationComplete();
       } else {

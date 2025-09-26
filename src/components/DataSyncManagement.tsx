@@ -22,7 +22,6 @@ import {
   CheckCircle as CheckIcon,
   Cancel as CancelIcon,
 } from "@mui/icons-material";
-import { HEDERA_CONFIG } from "../config/constants";
 import DataSyncConsentDialog from "./DataSyncConsentDialog";
 
 interface DataSyncConsent {
@@ -67,7 +66,6 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
   const [consentLoading, setConsentLoading] = useState(false);
   const [hasAutoPrompted, setHasAutoPrompted] = useState(false);
 
-  // Check data sync consent status
   const checkConsentStatus = async () => {
     try {
       setLoading(true);
@@ -80,11 +78,9 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
 
       if (result.success) {
         if (result.consent) {
-          console.log("📊 Data sync consent found:", result.consent);
           setConsentData(result.consent);
           setConsentStatus(result.consent.isActive ? "active" : "inactive");
         } else {
-          console.log("❌ No data sync consent found for account:", accountId);
           setConsentStatus("inactive");
         }
       } else {
@@ -101,7 +97,6 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
     }
   };
 
-  // Create data sync consent
   const createConsent = async () => {
     try {
       setConsentLoading(true);
@@ -123,7 +118,6 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
       const result = await response.json();
 
       if (result.success) {
-        console.log("✅ Data sync consent created:", result.data);
         setShowConsentDialog(false);
         await checkConsentStatus(); // Refresh status
       } else {
@@ -168,10 +162,9 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
       const result = await response.json();
 
       if (result.success) {
-        console.log("✅ Data sync consent revoked:", result.data);
         setShowRevokeDialog(false);
         setRevokeReason("");
-        await checkConsentStatus(); // Refresh status
+        await checkConsentStatus();
       } else {
         throw new Error(result.message || "Failed to revoke data sync consent");
       }
@@ -185,12 +178,12 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
 
   useEffect(() => {
     if (accountId) {
-      setHasAutoPrompted(false); // Reset auto-prompt flag for new account
+      setHasAutoPrompted(false);
       checkConsentStatus();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId]);
 
-  // Auto-prompt for consent when no consent exists
   useEffect(() => {
     if (
       consentStatus === "inactive" &&
@@ -198,14 +191,11 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
       !loading &&
       !hasAutoPrompted
     ) {
-      // Only auto-prompt if we've finished loading, confirmed no consent exists, and haven't already prompted
-      console.log("🔄 Auto-prompting for data sync consent - no consent found");
       setShowConsentDialog(true);
       setHasAutoPrompted(true);
     }
   }, [consentStatus, showConsentDialog, loading, hasAutoPrompted]);
 
-  // Show message if no account ID
   if (!accountId) {
     return (
       <Box>

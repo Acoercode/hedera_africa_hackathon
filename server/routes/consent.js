@@ -38,7 +38,6 @@ const logIncentiveActivity = async (accountId, incentiveResult, consentId) => {
     });
 
     await activity.save();
-    console.log(`✅ Logged incentive activity: ${incentiveResult.success ? 'awarded' : 'failed'} for ${accountId}`);
   } catch (error) {
     console.error('❌ Failed to log incentive activity:', error);
   }
@@ -139,7 +138,6 @@ router.post('/mint-and-transfer', async (req, res) => {
     const mintRec = await mintRx.getReceipt(hederaService.client);
     const serial = mintRec.serials[0].toNumber();
 
-    console.log(`✅ Minted consent NFT: Serial #${serial} for consent ${consentId}`);
 
     // 2) Transfer minted serial from treasury to user
     const xferTx = await new TransferTransaction()
@@ -150,7 +148,6 @@ router.post('/mint-and-transfer', async (req, res) => {
     const xferRx = await xferTx.execute(hederaService.client);
     const xferRec = await xferRx.getReceipt(hederaService.client);
 
-    console.log(`✅ Transferred consent NFT to user: ${accountId}`);
 
     // 3) Persist consent record in database
     const consent = new Consent({
@@ -179,7 +176,6 @@ router.post('/mint-and-transfer', async (req, res) => {
     });
 
     await consent.save();
-    console.log(`✅ Consent saved to database with NFT Serial #${serial}`);
 
     // Submit anonymized consent hash to HCS
     try {
@@ -192,7 +188,6 @@ router.post('/mint-and-transfer', async (req, res) => {
         validUntil: consent.validUntil
       });
 
-      console.log('✅ Consent hash submitted to HCS:', hederaResult.transactionId);
     } catch (hederaError) {
       console.error('HCS submission failed:', hederaError);
       // Continue anyway - the NFT is already minted and transferred
@@ -209,7 +204,6 @@ router.post('/mint-and-transfer', async (req, res) => {
       if (incentiveResult && incentiveResult.success) {
         console.log(`🎁 Research consent incentive tokens awarded: ${incentiveResult.amount} tokens`);
       } else if (incentiveResult && !incentiveResult.success) {
-        console.log(`⚠️ Research consent incentive not awarded: ${incentiveResult.message}`);
       }
     } catch (incentiveError) {
       console.error('❌ Failed to award research consent incentive tokens:', incentiveError);
@@ -304,7 +298,6 @@ router.post('/:id/revoke', async (req, res) => {
     consent.updatedAt = new Date();
 
     await consent.save();
-    console.log(`✅ Consent ${id} revoked in database`);
 
     // Update NFT status on Hedera (if NFT exists)
     let revocationTransactionId = null;
@@ -331,7 +324,6 @@ router.post('/:id/revoke', async (req, res) => {
         const receipt = await response.getReceipt(hederaService.client);
         
         revocationTransactionId = response.transactionId.toString();
-        console.log(`✅ Consent revocation submitted to HCS: ${receipt.topicSequenceNumber}`);
         
         // Update consent with revocation transaction ID
         consent.revocationTransactionId = revocationTransactionId;
@@ -400,7 +392,7 @@ router.post('/genomic-passport', async (req, res) => {
       });
     }
 
-    // Use the dedicated Ziva Passport NFT Token ID
+    // Use the dedicated RDZ Passport NFT Token ID
     const tokenId = TokenId.fromString(process.env.HEDERA_PASSPORT_NFT_ID || '0.0.6886170');
 
     // Create genomic passport hash
@@ -430,7 +422,6 @@ router.post('/genomic-passport', async (req, res) => {
     const mintRec = await mintRx.getReceipt(hederaService.client);
     const serial = mintRec.serials[0].toNumber();
 
-    console.log(`✅ Minted Ziva Passport NFT: Serial #${serial} for account ${accountId}`);
 
     // 2) Transfer minted serial from treasury to user
     const xferTx = await new TransferTransaction()
@@ -441,7 +432,6 @@ router.post('/genomic-passport', async (req, res) => {
     const xferRx = await xferTx.execute(hederaService.client);
     const xferRec = await xferRx.getReceipt(hederaService.client);
 
-    console.log(`✅ Transferred Ziva Passport NFT to user: ${accountId}`);
 
     // 3) Persist genomic passport record in database
     const passportConsent = new Consent({
@@ -452,7 +442,7 @@ router.post('/genomic-passport', async (req, res) => {
       purposes: ['data_ownership_proof'],
       validFrom: new Date(),
       validUntil: null, // Genomic passport doesn't expire
-      consentText: `Ziva Passport NFT proving ownership of genomic data for account ${accountId}`,
+      consentText: `RDZ Passport NFT proving ownership of genomic data for account ${accountId}`,
       consentVersion: "1.0",
       language: "en",
       patientSignature: "nft_minted",
@@ -470,12 +460,11 @@ router.post('/genomic-passport', async (req, res) => {
     });
 
     await passportConsent.save();
-    console.log(`✅ Ziva Passport saved to database with NFT Serial #${serial}`);
 
     // Submit genomic passport hash to HCS
     try {
       const passportMessage = JSON.stringify({
-        type: 'ziva_passport_minted',
+        type: 'rdz_passport_minted',
         accountId: accountId,
         tokenId: tokenId.toString(),
         serialNumber: serial,
@@ -490,7 +479,6 @@ router.post('/genomic-passport', async (req, res) => {
       const response = await topicMessageTransaction.execute(hederaService.client);
       const receipt = await response.getReceipt(hederaService.client);
       
-      console.log(`✅ Ziva Passport submitted to HCS: ${receipt.topicSequenceNumber}`);
     } catch (hederaError) {
       console.error('HCS submission failed:', hederaError);
       // Continue anyway - the NFT is already minted and transferred
@@ -519,7 +507,7 @@ router.post('/genomic-passport', async (req, res) => {
         validFrom: passportConsent.validFrom,
         validUntil: passportConsent.validUntil
       },
-      message: 'Ziva Passport NFT minted and transferred successfully'
+      message: 'RDZ Passport NFT minted and transferred successfully'
     });
 
     // Mint incentive tokens for passport creation
@@ -533,7 +521,6 @@ router.post('/genomic-passport', async (req, res) => {
       if (incentiveResult && incentiveResult.success) {
         console.log(`🎁 Passport creation incentive tokens awarded: ${incentiveResult.amount} tokens`);
       } else if (incentiveResult && !incentiveResult.success) {
-        console.log(`⚠️ Passport creation incentive not awarded: ${incentiveResult.message}`);
       }
     } catch (incentiveError) {
       console.error('❌ Failed to award passport creation incentive tokens:', incentiveError);
@@ -554,10 +541,10 @@ router.post('/genomic-passport', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Error minting Ziva Passport NFT:', error);
+    console.error('Error minting RDZ Passport NFT:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to mint Ziva Passport NFT',
+      message: 'Failed to mint RDZ Passport NFT',
       error: error.message 
     });
   }
@@ -595,7 +582,6 @@ router.post('/data-sync', async (req, res) => {
     }
 
     // Allow creating new consent even if there are revoked ones
-    console.log(`🔄 Creating new data sync consent for account ${accountId}`);
 
     // Use the dedicated Data Sync NFT Token ID
     const tokenId = TokenId.fromString(process.env.HEDERA_DATA_SYNC_NFT_ID || '0.0.123456');
@@ -654,7 +640,6 @@ router.post('/data-sync', async (req, res) => {
     
     const serial = mintReceipt.serials[0].toString();
 
-    console.log(`✅ Minted Data Sync Consent NFT: Serial #${serial} for account ${accountId}`);
 
     // Transfer NFT to user
     const transferTx = new TransferTransaction()
@@ -664,7 +649,6 @@ router.post('/data-sync', async (req, res) => {
     const transferTxResponse = await transferTx.execute(hederaService.client);
     const xferRx = await transferTxResponse.getReceipt(hederaService.client);
 
-    console.log(`✅ Transferred Data Sync Consent NFT to user: ${accountId}`);
 
     // Update consent record with NFT details
     dataSyncConsent.consentNFTTokenId = tokenId.toString();
@@ -674,7 +658,6 @@ router.post('/data-sync', async (req, res) => {
 
     await dataSyncConsent.save();
 
-    console.log(`✅ Data Sync Consent saved to database with NFT Serial #${serial}`);
 
     // Submit to HCS for audit trail
     const hcsMessage = `DATA_SYNC_CONSENT:${accountId}:${dataSyncHash}:${serial}:${new Date().toISOString()}`;
@@ -686,8 +669,6 @@ router.post('/data-sync', async (req, res) => {
     await hcsTx.execute(hederaService.client);
 
     // Mint incentive tokens for data sync consent
-    console.log('🔍 About to call incentive service for data sync consent...');
-    console.log('🔍 hederaService.incentiveService exists:', !!hederaService.incentiveService);
     let incentiveResult = null;
     try {
       incentiveResult = await hederaService.incentiveService.mintAndTransferIncentive(
@@ -698,7 +679,6 @@ router.post('/data-sync', async (req, res) => {
       if (incentiveResult && incentiveResult.success) {
         console.log(`🎁 Data sync incentive tokens awarded: ${incentiveResult.amount} tokens`);
       } else if (incentiveResult && !incentiveResult.success) {
-        console.log(`⚠️ Data sync incentive not awarded: ${incentiveResult.message}`);
       }
     } catch (incentiveError) {
       console.error('❌ Failed to award data sync incentive tokens:', incentiveError);
@@ -785,12 +765,6 @@ router.get('/data-sync/status/:accountId', async (req, res) => {
         if (nftInfo && nftInfo.length > 0) {
           const nft = nftInfo[0];
           nftValid = nft.accountId.toString() === accountId;
-          console.log(`🔍 NFT validation for account ${accountId}:`, {
-            tokenId: dataSyncConsent.consentNFTTokenId,
-            serialNumber: dataSyncConsent.consentNFTSerialNumber,
-            owner: nft.accountId.toString(),
-            isValid: nftValid
-          });
         }
       }
     } catch (error) {
@@ -869,7 +843,6 @@ router.post('/data-sync/revoke/:accountId', async (req, res) => {
 
     await dataSyncConsent.save();
 
-    console.log(`✅ Data sync consent revoked for account ${accountId}`);
 
     // Submit revocation to HCS for audit trail
     const revocationPayload = {

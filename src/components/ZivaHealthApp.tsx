@@ -22,8 +22,6 @@ import {
   Person as PersonIcon,
   Star as StarIcon,
   Logout as LogoutIcon,
-  Sync as SyncIcon,
-  SyncDisabled as SyncDisabledIcon,
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { useUser } from "../contexts/UserContext";
@@ -31,7 +29,6 @@ import WalletTab from "./WalletTab";
 import ConsentManagement from "./ConsentManagement";
 import ActivityTab from "./ActivityTab";
 import DataSyncManagement from "./DataSyncManagement";
-import DataSyncConsentDialog from "./DataSyncConsentDialog";
 import AITab from "./AITab";
 import rdzLogo from "../assets/RDZ Health.png";
 import { ReactComponent as ProfileIcon } from "../assets/profile_icon_color.svg";
@@ -56,8 +53,6 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
   const [currentTab, setCurrentTab] = useState(0);
   const [currentProfileCard, setCurrentProfileCard] = useState(0);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [showDataSyncConsent, setShowDataSyncConsent] = useState(false);
-  const [dataSyncLoading, setDataSyncLoading] = useState(false);
   const [autoOpenDataSyncConsent, setAutoOpenDataSyncConsent] = useState(false);
   const { accountId, walletInterface } = useWalletInterface();
   const {
@@ -72,19 +67,13 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
     setCurrentTab(newValue);
   };
 
+  // Scroll to top when main tab changes
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentTab]);
+
   const handleProfileCardClick = (cardIndex: number) => {
     setCurrentProfileCard(cardIndex);
-  };
-
-  // Data sync consent handlers - now uses the same consent dialog flow
-  const handleDataSyncConsent = async () => {
-    // This will be handled by the ConsentManagement component's consent dialog
-    // The actual consent creation happens in the ConsentManagement component
-    setShowDataSyncConsent(false);
-  };
-
-  const handleDataSyncDecline = () => {
-    setShowDataSyncConsent(false);
   };
 
   const handleConsentCreated = async () => {
@@ -102,7 +91,6 @@ const ZivaHealthApp: React.FC<ZivaHealthAppProps> = ({ onLogout }) => {
       // Disconnect wallet if connected
       if (walletInterface && typeof walletInterface.disconnect === "function") {
         await walletInterface.disconnect();
-        console.log("Wallet disconnected successfully");
       }
     } catch (error) {
       console.error("Error disconnecting wallet:", error);

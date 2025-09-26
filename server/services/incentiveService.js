@@ -9,7 +9,10 @@ class IncentiveService {
     this.incentiveAmounts = {
       data_sync: 100,        // 100 tokens for data sync consent
       research_consent: 150, // 150 tokens for research consent
-      passport_creation: 200 // 200 tokens for passport creation
+      passport_creation: 200, // 200 tokens for passport creation
+      'AI chat_started': 10, // 10 tokens for starting AI conversation
+      'AI fhir_translation_completed': 50, // 50 tokens for FHIR translation
+      'AI genomic_insights_completed': 25 // 25 tokens for genomic insights
     };
   }
 
@@ -63,8 +66,6 @@ class IncentiveService {
       const associateResponse = await signedTx.execute(this.hederaService.client);
       const associateReceipt = await associateResponse.getReceipt(this.hederaService.client);
       
-      console.log(`✅ Account ${accountId} successfully associated with incentive token ${this.incentiveTokenId}`);
-      console.log(`📋 Association Transaction ID: ${associateResponse.transactionId.toString()}`);
       
       return {
         success: true,
@@ -108,11 +109,8 @@ class IncentiveService {
 
       // Check if recipient is associated with the incentive token
       const isAssociated = await this.isAccountAssociated(recipientAccountId);
-      console.log(`🔍 Account ${recipientAccountId} associated with incentive token: ${isAssociated}`);
       
       if (!isAssociated) {
-        console.log(`⚠️ Account ${recipientAccountId} not associated with incentive token ${this.incentiveTokenId}`);
-        console.log(`💡 User needs to associate with token ${this.incentiveTokenId} to receive ${amount} RDZ tokens`);
         
         return {
           success: false,
@@ -147,8 +145,6 @@ class IncentiveService {
       const txResponse = await transferTx.execute(this.hederaService.client);
       const receipt = await txResponse.getReceipt(this.hederaService.client);
 
-      console.log(`✅ Incentive tokens transferred successfully: ${amount} tokens to ${recipientAccountId}`);
-      console.log(`📋 Transaction ID: ${txResponse.transactionId.toString()}`);
 
       return {
         success: true,
@@ -193,7 +189,6 @@ class IncentiveService {
     try {
       // This would typically query the Hedera Mirror Node API
       // For now, we'll return a placeholder response
-      console.log(`🔍 Checking pending airdrops for account ${accountId}`);
       
       // TODO: Implement actual mirror node query
       // const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}/airdrops/pending`);

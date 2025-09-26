@@ -68,6 +68,15 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 - **HEDERA_DATA_SYNC_NFT_ID**: Used for data synchronization NFTs (currently ignored)
 - **HEDERA_RDZ_INCENTIVE_TOKEN_ID**: Used for incentive/reward tokens
 
+## Incentive Token Rewards
+
+- **Data Sync Consent**: 100 RDZ tokens
+- **Research Consent**: 150 RDZ tokens
+- **Passport Creation**: 200 RDZ tokens
+- **AI Chat Started**: 10 RDZ tokens
+- **AI FHIR Translation**: 50 RDZ tokens
+- **AI Genomic Insights**: 25 RDZ tokens
+
 ## Topic ID Usage
 
 - **HEDERA_CONSENT_TOPIC_ID**: HCS topic for consent logging

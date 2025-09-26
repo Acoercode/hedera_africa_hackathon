@@ -18,7 +18,6 @@ router.get('/balance/:accountId', async (req, res) => {
     // Get the incentive token ID from environment
     const incentiveTokenId = process.env.HEDERA_RDZ_INCENTIVE_TOKEN_ID || '0.0.6894102';
     
-    console.log(`🔍 Checking incentive token balance for account ${accountId}`);
     
     // Query account balance
     const accountIdObj = AccountId.fromString(accountId);

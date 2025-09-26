@@ -107,8 +107,6 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
       setDataSyncLoading(true);
       setError(null);
 
-      console.log("🔐 Opening wallet to sign data sync consent transaction...");
-
       if (!walletInterface) {
         throw new Error(
           "Wallet not connected. Please connect your wallet first.",
@@ -121,17 +119,6 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
         HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID,
       );
 
-      console.log(
-        "📱 Wallet should now open for data sync token association...",
-      );
-      console.log("📋 Data sync token association details:", {
-        tokenId: dataSyncTokenId.toString(),
-        purpose: "Associate with Data Sync Consent NFT Collection",
-        type: "data_sync",
-        description: "Enable data synchronization across research platforms",
-        action: "Data Sync Token Association (required before receiving NFTs)",
-      });
-
       // Step 1: User signs token association transaction
       const associationTransactionId =
         await walletInterface.associateToken(dataSyncTokenId);
@@ -139,8 +126,6 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
       if (!associationTransactionId) {
         throw new Error("Token association failed or was rejected.");
       }
-
-      console.log("✅ Token association successful:", associationTransactionId);
 
       // Step 2: Backend mints and transfers the NFT
       const dataSyncResponse = await fetch(
@@ -158,12 +143,6 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
         const errorText = await dataSyncResponse.text();
         throw new Error(`Backend error: ${errorText}`);
       }
-
-      const dataSyncResult = await dataSyncResponse.json();
-      console.log(
-        "✅ Data sync consent NFT minted and transferred:",
-        dataSyncResult,
-      );
 
       // Proceed to main app
       setShowDataSyncConsent(false);

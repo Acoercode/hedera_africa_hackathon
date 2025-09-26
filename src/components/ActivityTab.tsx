@@ -15,22 +15,18 @@ import {
   Tab,
   Grid,
   Paper,
-  Button,
   IconButton,
 } from "@mui/material";
 import {
   CheckCircle as CheckIcon,
   Upload as UploadIcon,
-  Security as SecurityIcon,
   Star as StarIcon,
   Science as ScienceIcon,
-  Share as ShareIcon,
   History as HistoryIcon,
   Refresh as RefreshIcon,
   MonetizationOn as IncentiveIcon,
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
-import { apiService } from "../services/api";
 
 interface Activity {
   activityId: string;
@@ -57,7 +53,13 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
     if (accountId) {
       loadActivities();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId]);
+
+  // Scroll to top when tab changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [selectedTab]);
 
   const loadActivities = async () => {
     try {
@@ -129,14 +131,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
     selectedTab === 0
       ? activities
       : activities.filter((activity) => {
-          const types = [
-            "consent",
-            "data",
-            "incentive",
-            "security",
-            "ai",
-            "sharing",
-          ];
+          const types = ["consent", "data", "incentive", "ai"];
           return activity.activityType === types[selectedTab - 1];
         });
 

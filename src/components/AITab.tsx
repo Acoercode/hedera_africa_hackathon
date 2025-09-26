@@ -31,6 +31,7 @@ import {
   ContentCopy as CopyIcon,
 } from "@mui/icons-material";
 import { useUser } from "../contexts/UserContext";
+import { useWalletInterface } from "../services/wallets/useWalletInterface";
 
 interface ChatMessage {
   id: string;
@@ -48,9 +49,9 @@ interface FHIRData {
 }
 
 const AITab: React.FC = () => {
-  const { user, genomicData } = useUser();
+  const { genomicData } = useUser();
+  const { accountId } = useWalletInterface();
   const [activeTab, setActiveTab] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -77,6 +78,11 @@ const AITab: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [chatMessages]);
+
+  // Scroll to top when AI tab changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeTab]);
 
   const handleChatSubmit = async () => {
     if (!currentQuestion.trim() || chatLoading) return;
@@ -106,6 +112,7 @@ const AITab: React.FC = () => {
             role: msg.role,
             content: msg.content,
           })),
+          accountId: accountId,
         }),
       });
 
@@ -119,6 +126,19 @@ const AITab: React.FC = () => {
           timestamp: new Date(),
         };
         setChatMessages((prev) => [...prev, assistantMessage]);
+
+        // Show incentive info if available
+        if (data.incentive) {
+          if (data.incentive.success) {
+            setSuccess(
+              `You earned ${data.incentive.amount} RDZ incentive tokens for starting a conversation!`,
+            );
+          } else if (data.incentive.requiresAssociation) {
+            setSuccess(
+              `🎁 To earn ${data.incentive.amount} RDZ tokens:\n1. Go to the Wallet tab\n2. Click 'Associate with RDZ Token'\n3. Sign the transaction in your wallet\n4. Return here to receive your tokens!`,
+            );
+          }
+        }
       } else {
         setError(data.error || "Failed to get AI response");
       }
@@ -149,6 +169,7 @@ const AITab: React.FC = () => {
           },
           body: JSON.stringify({
             genomicData: genomicData,
+            accountId: accountId,
           }),
         },
       );
@@ -159,7 +180,18 @@ const AITab: React.FC = () => {
         setFhirData(data.fhirData);
         setFhirBundle(data.rawResponse);
         setFhirDialogOpen(true);
-        setSuccess("Genomic data successfully converted to FHIR format");
+
+        // Show success message with incentive info
+        let successMessage =
+          "Genomic data successfully converted to FHIR format";
+        if (data.incentive) {
+          if (data.incentive.success) {
+            successMessage += ` You earned ${data.incentive.amount} RDZ incentive tokens!`;
+          } else if (data.incentive.requiresAssociation) {
+            successMessage += `\n\n🎁 To earn ${data.incentive.amount} RDZ tokens:\n1. Go to the Wallet tab\n2. Click 'Associate with RDZ Token'\n3. Sign the transaction in your wallet\n4. Return here to receive your tokens!`;
+          }
+        }
+        setSuccess(successMessage);
       } else {
         setError(data.error || "Failed to translate to FHIR");
       }
@@ -190,6 +222,7 @@ const AITab: React.FC = () => {
           },
           body: JSON.stringify({
             genomicData: genomicData,
+            accountId: accountId,
           }),
         },
       );
@@ -198,7 +231,17 @@ const AITab: React.FC = () => {
 
       if (data.success) {
         setInsights(data.insights);
-        setSuccess("Genomic insights generated successfully");
+
+        // Show success message with incentive info
+        let successMessage = "Genomic insights generated successfully";
+        if (data.incentive) {
+          if (data.incentive.success) {
+            successMessage += ` You earned ${data.incentive.amount} RDZ incentive tokens!`;
+          } else if (data.incentive.requiresAssociation) {
+            successMessage += `\n\n🎁 To earn ${data.incentive.amount} RDZ tokens:\n1. Go to the Wallet tab\n2. Click 'Associate with RDZ Token'\n3. Sign the transaction in your wallet\n4. Return here to receive your tokens!`;
+          }
+        }
+        setSuccess(successMessage);
       } else {
         setError(data.error || "Failed to generate insights");
       }

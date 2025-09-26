@@ -42,7 +42,6 @@ class HederaService {
       console.log('🎁 Incentive service initialized');
       
       this.initialized = true;
-      console.log('✅ Hedera service initialized successfully');
       
     } catch (error) {
       console.error('❌ Hedera service initialization failed:', error);
@@ -55,7 +54,6 @@ class HederaService {
       // Check if consent topic already exists
       if (process.env.HEDERA_CONSENT_TOPIC_ID) {
         this.consentTopicId = process.env.HEDERA_CONSENT_TOPIC_ID;
-        console.log(`📋 Using existing consent topic: ${this.consentTopicId}`);
         return;
       }
 
@@ -68,7 +66,6 @@ class HederaService {
       const topicCreateReceipt = await topicCreateResponse.getReceipt(this.client);
       
       this.consentTopicId = topicCreateReceipt.topicId.toString();
-      console.log(`📋 Created consent topic: ${this.consentTopicId}`);
       
       // Save topic ID to environment for future use
       console.log(`💡 Add this to your .env file: HEDERA_CONSENT_TOPIC_ID=${this.consentTopicId}`);
@@ -166,7 +163,6 @@ class HederaService {
       const response = await topicMessageTransaction.execute(this.client);
       const receipt = await response.getReceipt(this.client);
       
-      console.log(`✅ Anonymized consent hash submitted to Hedera: ${receipt.topicSequenceNumber}`);
       
       return {
         transactionId: response.transactionId.toString(),
@@ -208,7 +204,6 @@ class HederaService {
       const response = await topicMessageTransaction.execute(this.client);
       const receipt = await response.getReceipt(this.client);
       
-      console.log(`✅ Data access log submitted to Hedera: ${receipt.topicSequenceNumber}`);
       
       return {
         transactionId: response.transactionId.toString(),
@@ -231,7 +226,6 @@ class HederaService {
     try {
       // This would typically involve querying the HCS topic for the specific message
       // For now, we'll return a mock verification
-      console.log(`🔍 Verifying consent transaction: ${consentTransactionId}`);
       
       return {
         isValid: true,
@@ -316,7 +310,6 @@ class HederaService {
       const response = await tokenCreateTransaction.execute(this.client);
       const receipt = await response.getReceipt(this.client);
       
-      console.log(`✅ Created consent NFT: ${receipt.tokenId.toString()}`);
       
       return {
         tokenId: receipt.tokenId.toString(),
@@ -343,17 +336,14 @@ class HederaService {
       
       if (userWalletSigner) {
         // User signs the transaction with their wallet
-        console.log('🔐 User wallet signing NFT mint transaction...');
         response = await userWalletSigner(tokenMintTransaction);
       } else {
         // Fallback to operator signing (for testing)
-        console.log('⚠️ Using operator signing (should use user wallet in production)');
         response = await tokenMintTransaction.execute(this.client);
       }
       
       const receipt = await response.getReceipt(this.client);
       
-      console.log(`✅ Minted consent NFT: ${receipt.serials[0].toString()}`);
       
       return {
         serialNumber: receipt.serials[0].toString(),
@@ -396,7 +386,6 @@ class HederaService {
       const receipt = await response.getReceipt(this.client);
       
       this.incentiveTokenId = receipt.tokenId.toString();
-      console.log(`✅ Created incentive token: ${this.incentiveTokenId}`);
       
       return {
         tokenId: this.incentiveTokenId,
@@ -427,7 +416,6 @@ class HederaService {
       const response = await tokenTransferTransaction.execute(this.client);
       const receipt = await response.getReceipt(this.client);
       
-      console.log(`✅ Distributed ${amount} GDI tokens to ${recipientAccountId}: ${reason}`);
       
       return {
         transactionId: response.transactionId.toString(),

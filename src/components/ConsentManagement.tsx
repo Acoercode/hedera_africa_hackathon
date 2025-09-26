@@ -54,26 +54,23 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
     if (accountId) {
       loadConsents();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId]);
 
-  // Auto-open data sync consent dialog if requested
   useEffect(() => {
     if (autoOpenDataSyncConsent && onDataSyncConsentOpened) {
-      // Find the data sync consent and open the dialog
       const dataSyncConsent = predefinedConsentTypes.find(
         (consent) => consent.consentType === "data_sync",
       );
       if (dataSyncConsent) {
         setSelectedConsent(dataSyncConsent);
         setShowConsentDialog(true);
-        onDataSyncConsentOpened(); // Notify parent that dialog was opened
+        onDataSyncConsentOpened();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoOpenDataSyncConsent, onDataSyncConsentOpened]);
 
-  console.log("HEDERA_CONFIG", HEDERA_CONFIG);
-
-  // Predefined consent types that users can enable/disable
   const predefinedConsentTypes = [
     {
       consentId: "data-sync",
@@ -145,10 +142,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         );
 
         if (existing) {
-          console.log(
-            `Found existing consent for ${predefined.consentType}:`,
-            existing,
-          );
+          // Found existing consent
         }
 
         const mergedConsent = {
@@ -183,17 +177,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
           updatedAt: existing ? existing.updatedAt : undefined,
         };
 
-        // Debug log for passport consent
-        if (predefined.consentType === "genomic_passport") {
-          console.log("🔍 Passport consent merge result:", {
-            predefined: predefined.consentType,
-            existing: existing ? existing.consentStatus : "none",
-            merged: mergedConsent.consentStatus,
-            nftTokenId: mergedConsent.consentNFTTokenId,
-            nftSerial: mergedConsent.consentNFTSerialNumber,
-          });
-        }
-
         return mergedConsent;
       });
 
@@ -208,17 +191,14 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
   const handleConsentToggle = async (consent: Consent, newStatus: boolean) => {
     if (newStatus) {
-      // Check if this is a revoked consent that needs re-enabling
       if (consent.consentStatus === "revoked") {
-        // For revoked consents, we create a new consent instead of reactivating
         setSelectedConsent({
           ...consent,
-          consentId: `${consent.consentId}-${Date.now()}`, // New unique ID
-          consentStatus: "pending", // Reset status
+          consentId: `${consent.consentId}-${Date.now()}`,
+          consentStatus: "pending",
         });
         setShowConsentDialog(true);
       } else {
-        // Show consent dialog for enabling new consent
         setSelectedConsent(consent);
         setShowConsentDialog(true);
       }
@@ -237,20 +217,10 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       setSuccess(null);
       setShowConsentDialog(false);
 
-      // Check if this is a genomic passport (requires wallet signing)
       if (selectedConsent.consentType === "genomic_passport") {
-        // For genomic passport, user must sign the transaction
         const passportResult = await signGenomicPassportTransaction();
-
-        console.log(
-          "✅ Genomic passport NFT minted and transferred:",
-          passportResult,
-        );
-
-        // Log activity as data type (genomic passport creation)
         await logPassportActivity(selectedConsent, "created");
 
-        // Set success message with incentive info
         const incentiveInfo = passportResult.incentive
           ? ` You earned ${passportResult.incentive.amount} RDZ incentive tokens!`
           : "";
@@ -258,61 +228,41 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
           `Genomic passport NFT ${passportResult.passport.consentNFTTokenId}#${passportResult.passport.consentNFTSerialNumber} created successfully.${incentiveInfo}`,
         );
 
-        // Reload consents to reflect changes
         await loadConsents();
 
-        // Notify parent that consent was created (to trigger data refetch)
         if (onConsentCreated) {
           onConsentCreated();
         }
 
-        return; // Exit early - don't execute regular consent flow
+        return;
       } else if (selectedConsent.consentType === "data_sync") {
-        // For data sync consent, user must sign the transaction (same as genomic passport)
         const dataSyncResult = await signDataSyncTransaction();
-
-        console.log(
-          "✅ Data sync consent NFT minted and transferred:",
-          dataSyncResult,
-        );
-
-        // Log activity for data sync consent
         await logConsentActivity(selectedConsent, "created");
 
-        // Set success message with incentive info
         let incentiveInfo = "";
         if (dataSyncResult.data.incentive) {
           if (dataSyncResult.data.incentive.success) {
             incentiveInfo = ` You earned ${dataSyncResult.data.incentive.amount} RDZ incentive tokens!`;
           } else if (dataSyncResult.data.incentive.requiresAssociation) {
-            incentiveInfo = `\n\n🎁 To earn ${dataSyncResult.data.incentive.amount} RDZ tokens:\n1. Go to the Wallet tab\n2. Click 'Associate with RDZ Token'\n3. Sign the transaction in your wallet\n4. Return here to receive your tokens!`;
+            incentiveInfo = `\n\nTo earn ${dataSyncResult.data.incentive.amount} RDZ tokens:\n1. Go to the Wallet tab\n2. Click 'Associate with RDZ Token'\n3. Sign the transaction in your wallet\n4. Return here to receive your tokens!`;
           }
         }
         setSuccess(
           `Data sync consent NFT ${dataSyncResult.data.consentNFTTokenId}#${dataSyncResult.data.consentNFTSerialNumber} created successfully.${incentiveInfo}`,
         );
 
-        // Reload consents to reflect changes
         await loadConsents();
 
-        // Notify parent that consent was created (to trigger data refetch)
         if (onConsentCreated) {
           onConsentCreated();
         }
 
-        return; // Exit early - don't execute regular consent flow
+        return;
       }
 
-      // Regular consent flow (requires wallet signing) - only for non-passport, non-data-sync consents
-      // Step 1: Sign transaction with user wallet FIRST
       const mintResult = await signTransactionWithWallet();
-
-      console.log("NFT minted and transferred:", mintResult);
-
-      // Log activity
       await logConsentActivity(selectedConsent, "granted");
 
-      // Set success message with incentive info
       const incentiveInfo = mintResult.incentive
         ? ` You earned ${mintResult.incentive.amount} RDZ incentive tokens!`
         : "";
@@ -320,7 +270,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         `Consent enabled and NFT ${mintResult.consentNFTTokenId}#${mintResult.consentNFTSerialNumber} issued.${incentiveInfo}`,
       );
 
-      // Reload consents to reflect changes
       await loadConsents();
     } catch (err: any) {
       setError("Something went wrong, try again");
@@ -333,8 +282,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
   const signGenomicPassportTransaction = async () => {
     try {
-      console.log("🔐 Opening wallet to sign genomic passport transaction...");
-
       const activeWalletInterface = walletInterface;
 
       if (!activeWalletInterface) {
@@ -343,21 +290,10 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         );
       }
 
-      // Use native HTS NFT flow for RDZ Passport
       const { TokenId } = await import("@hashgraph/sdk");
       const passportTokenId = TokenId.fromString(
         HEDERA_CONFIG.PASSPORT_NFT_TOKEN_ID,
       );
-
-      console.log("📱 Wallet should now open for RDZ Passport creation...");
-      console.log("📋 RDZ Passport creation details:", {
-        tokenId: passportTokenId.toString(),
-        purpose: "Create RDZ Passport - Genomic Data Ownership Proof",
-        type: "genomic_passport",
-        description:
-          "Create your unique RDZ Passport NFT that proves ownership of your genomic data",
-        action: "RDZ Passport Creation (Token Association Required)",
-      });
 
       const associationTransactionId =
         await activeWalletInterface.associateToken(passportTokenId);
@@ -366,9 +302,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         throw new Error("Token association failed or was rejected.");
       }
 
-      console.log("✅ Token association successful:", associationTransactionId);
-
-      // Call backend to mint and transfer the genomic passport NFT
       const passportResponse = await fetch(
         "http://localhost:5000/api/consent/genomic-passport",
         {
@@ -386,10 +319,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       }
 
       const passportResult = await passportResponse.json();
-      console.log(
-        "✅ Genomic passport NFT minted and transferred:",
-        passportResult,
-      );
 
       return passportResult;
     } catch (error) {
@@ -400,8 +329,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
   const signDataSyncTransaction = async () => {
     try {
-      console.log("🔐 Opening wallet to sign data sync consent transaction...");
-
       const activeWalletInterface = walletInterface;
 
       if (!activeWalletInterface) {
@@ -410,24 +337,11 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         );
       }
 
-      // Use native HTS NFT flow for data sync consent
       const { TokenId } = await import("@hashgraph/sdk");
       const dataSyncTokenId = TokenId.fromString(
         HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID,
       );
 
-      console.log(
-        "📱 Wallet should now open for data sync token association...",
-      );
-      console.log("📋 Data sync token association details:", {
-        tokenId: dataSyncTokenId.toString(),
-        purpose: "Associate with Data Sync Consent NFT Collection",
-        type: "data_sync",
-        description: "Enable data synchronization across research platforms",
-        action: "Data Sync Token Association (required before receiving NFTs)",
-      });
-
-      // Step 1: User signs token association transaction
       const associationTransactionId =
         await activeWalletInterface.associateToken(dataSyncTokenId);
 
@@ -435,9 +349,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         throw new Error("Token association failed or was rejected.");
       }
 
-      console.log("✅ Token association successful:", associationTransactionId);
-
-      // Step 2: Backend mints and transfers the NFT
       const dataSyncResponse = await fetch(
         "http://localhost:5000/api/consent/data-sync",
         {
@@ -455,10 +366,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       }
 
       const dataSyncResult = await dataSyncResponse.json();
-      console.log(
-        "✅ Data sync consent NFT minted and transferred:",
-        dataSyncResult,
-      );
 
       return dataSyncResult;
     } catch (error) {
@@ -469,8 +376,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
   const signTransactionWithWallet = async () => {
     try {
-      console.log("🔐 Opening wallet to sign consent contract transaction...");
-
       const activeWalletInterface = walletInterface;
 
       if (!activeWalletInterface) {
@@ -479,22 +384,11 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         );
       }
 
-      // Use native HTS NFT flow for consent
       const { TokenId } = await import("@hashgraph/sdk");
       const consentTokenId = TokenId.fromString(
         HEDERA_CONFIG.RESEARCH_CONSENT_NFT_TOKEN_ID,
       );
 
-      console.log("📱 Wallet should now open for token association...");
-      console.log("📋 Token association details:", {
-        tokenId: consentTokenId.toString(),
-        purpose: "Associate with Consent NFT Collection",
-        type: selectedConsent?.consentType,
-        description: selectedConsent?.description,
-        action: "Token Association (required before receiving NFTs)",
-      });
-
-      // Step 1: User associates with the Consent NFT token
       const associationTransactionId =
         await activeWalletInterface.associateToken(consentTokenId);
 
@@ -502,14 +396,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         throw new Error("Token association failed");
       }
 
-      console.log("✅ Token association successful:", associationTransactionId);
-
-      // Step 2: Backend mints NFT with consent metadata and transfers to user
-      console.log(
-        "🔄 Backend will now mint consent NFT and transfer to user...",
-      );
-
-      // Call backend to mint and transfer the NFT
       const body = {
         accountId, // receiver (user)
         consentId: selectedConsent.consentId,
@@ -539,9 +425,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       }
 
       const mintResult = await mintResponse.json();
-      console.log("✅ Consent NFT minted and transferred:", mintResult);
 
-      // Return the mint result for the success message
       return mintResult;
     } catch (error) {
       console.error(
@@ -556,9 +440,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
   const disableConsent = async (consent: Consent) => {
     try {
-      console.log("Revoking consent:", consent);
-
-      // Call backend to revoke the consent
       const response = await fetch(
         `http://localhost:5000/api/consent/${consent.consentId}/revoke`,
         {
@@ -578,24 +459,18 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         throw new Error(`Failed to revoke consent: ${errorText}`);
       }
 
-      const result = await response.json();
-      console.log("Consent revoked:", result);
-
-      // Log activity (use appropriate type based on consent type)
       if (consent.consentType === "genomic_passport") {
         await logPassportActivity(consent, "revoked");
       } else {
         await logConsentActivity(consent, "revoked");
       }
 
-      // Reload consents to reflect the change
       await loadConsents();
 
       setSuccess(
         `Consent for "${predefinedConsentTypes.find((ct) => ct.consentType === consent.consentType)?.name || consent.consentType}" has been revoked successfully.`,
       );
 
-      // Notify parent that consent was revoked (to trigger data refetch)
       if (onConsentCreated) {
         onConsentCreated();
       }
@@ -648,7 +523,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         userId: accountId,
         activityName: `rdz_passport_${action}`,
         activityDescription: getActionDescription(action),
-        activityType: "data", // Use 'data' type for genomic passport activities
+        activityType: "data",
         metadata: {
           passportId: passport.consentId,
           passportType: passport.consentType,
