@@ -68,7 +68,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
 
       // Fetch real activities from the API
       const response = await fetch(
-        `http://localhost:5000/api/activities/user/${accountId}?limit=50`,
+        `${process.env.REACT_APP_API_ROOT}/activities/user/${accountId}?limit=50`,
       );
 
       if (!response.ok) {

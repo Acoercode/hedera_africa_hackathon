@@ -60,7 +60,7 @@ const WalletTab: React.FC = () => {
       // Load incentive association info
       try {
         const response = await fetch(
-          `http://localhost:5000/api/incentives/association-info/${accountId}`,
+          `${process.env.REACT_APP_API_ROOT}/incentives/association-info/${accountId}`,
         );
         if (response.ok) {
           const data = await response.json();
@@ -73,7 +73,7 @@ const WalletTab: React.FC = () => {
       // Load real consent and passport NFTs
       try {
         const consentsResponse = await fetch(
-          `http://localhost:5000/api/consent?patientId=${accountId}&includeRevoked=true`,
+          `${process.env.REACT_APP_API_ROOT}/consent?patientId=${accountId}&includeRevoked=true`,
         );
         if (consentsResponse.ok) {
           const consentsData = await consentsResponse.json();

@@ -100,21 +100,24 @@ const AITab: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:5000/api/ai/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${process.env.REACT_APP_API_ROOT}/ai/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question: currentQuestion,
+            genomicData: genomicData,
+            chatHistory: chatMessages.map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+            })),
+            accountId: accountId,
+          }),
         },
-        body: JSON.stringify({
-          question: currentQuestion,
-          genomicData: genomicData,
-          chatHistory: chatMessages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
-          accountId: accountId,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -161,7 +164,7 @@ const AITab: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/ai/translate-fhir",
+        `${process.env.REACT_APP_API_ROOT}/ai/translate-fhir`,
         {
           method: "POST",
           headers: {
@@ -214,7 +217,7 @@ const AITab: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/ai/generate-insights",
+        `${process.env.REACT_APP_API_ROOT}/ai/generate-insights`,
         {
           method: "POST",
           headers: {

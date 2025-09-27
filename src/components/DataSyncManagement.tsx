@@ -72,7 +72,7 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
       setError(null);
 
       const response = await fetch(
-        `http://localhost:5000/api/consent/data-sync/status/${accountId}`,
+        `${process.env.REACT_APP_API_ROOT}/consent/data-sync/status/${accountId}`,
       );
       const result = await response.json();
 
@@ -103,7 +103,7 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
       setError(null);
 
       const response = await fetch(
-        "http://localhost:5000/api/consent/data-sync",
+        `${process.env.REACT_APP_API_ROOT}/consent/data-sync`,
         {
           method: "POST",
           headers: {
@@ -147,7 +147,7 @@ const DataSyncManagement: React.FC<DataSyncManagementProps> = ({
       setError(null);
 
       const response = await fetch(
-        `http://localhost:5000/api/consent/data-sync/revoke/${accountId}`,
+        `${process.env.REACT_APP_API_ROOT}/consent/data-sync/revoke/${accountId}`,
         {
           method: "POST",
           headers: {

@@ -126,7 +126,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
       // Fetch consents for the logged-in user (including revoked ones)
       const response = await fetch(
-        `http://localhost:5000/api/consent?patientId=${accountId}&includeRevoked=true`,
+        `${process.env.REACT_APP_API_ROOT}/consent?patientId=${accountId}&includeRevoked=true`,
       );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -303,7 +303,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       }
 
       const passportResponse = await fetch(
-        "http://localhost:5000/api/consent/genomic-passport",
+        `${process.env.REACT_APP_API_ROOT}/consent/genomic-passport`,
         {
           method: "POST",
           headers: {
@@ -350,7 +350,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       }
 
       const dataSyncResponse = await fetch(
-        "http://localhost:5000/api/consent/data-sync",
+        `${process.env.REACT_APP_API_ROOT}/consent/data-sync`,
         {
           method: "POST",
           headers: {
@@ -409,7 +409,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       };
 
       const mintResponse = await fetch(
-        "http://localhost:5000/api/consent/mint-and-transfer",
+        `${process.env.REACT_APP_API_ROOT}/consent/mint-and-transfer`,
         {
           method: "POST",
           headers: {
@@ -441,7 +441,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
   const disableConsent = async (consent: Consent) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/consent/${consent.consentId}/revoke`,
+        `${process.env.REACT_APP_API_ROOT}/consent/${consent.consentId}/revoke`,
         {
           method: "POST",
           headers: {
@@ -494,7 +494,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         },
       };
 
-      await fetch("http://localhost:5000/api/activities/create", {
+      await fetch(`${process.env.REACT_APP_API_ROOT}/activities/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -532,7 +532,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         },
       };
 
-      await fetch("http://localhost:5000/api/activities/create", {
+      await fetch(`${process.env.REACT_APP_API_ROOT}/activities/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

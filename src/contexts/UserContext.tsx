@@ -113,7 +113,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({
     try {
       // First, fetch user data
       const userResponse = await fetch(
-        `http://localhost:5000/api/users/by-hedera-account/${accountId}`,
+        `${process.env.REACT_APP_API_ROOT}/users/by-hedera-account/${accountId}`,
       );
 
       if (!userResponse.ok) {
@@ -130,7 +130,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({
         // Check data sync consent before showing genomic data
         try {
           const consentResponse = await fetch(
-            `http://localhost:5000/api/consent/data-sync/status/${accountId}?t=${Date.now()}`,
+            `${process.env.REACT_APP_API_ROOT}/consent/data-sync/status/${accountId}?t=${Date.now()}`,
           );
 
           if (consentResponse.ok) {

@@ -62,7 +62,7 @@ const TokenAssociationDialog: React.FC<TokenAssociationDialogProps> = ({
     try {
       // Check if already associated
       const response = await fetch(
-        `http://localhost:5000/api/incentives/association-info/${accountId}`,
+        `${process.env.REACT_APP_API_ROOT}/incentives/association-info/${accountId}`,
       );
       const data = await response.json();
 

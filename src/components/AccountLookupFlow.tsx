@@ -129,7 +129,7 @@ const AccountLookupFlow: React.FC<AccountLookupFlowProps> = ({
 
       // Step 2: Backend mints and transfers the NFT
       const dataSyncResponse = await fetch(
-        "http://localhost:5000/api/consent/data-sync",
+        `${process.env.REACT_APP_API_ROOT}/consent/data-sync`,
         {
           method: "POST",
           headers: {
