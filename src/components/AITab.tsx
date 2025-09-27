@@ -14,11 +14,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Tabs,
-  Tab,
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Grid,
+  Stack,
 } from "@mui/material";
 import {
   SmartToy as AIIcon,
@@ -637,18 +637,150 @@ const AITab: React.FC = () => {
         </Alert>
       )}
 
-      {/* AI Tabs */}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs
-          value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
-          variant="fullWidth"
-        >
-          <Tab label="Chat Assistant" icon={<ChatIcon />} />
-          <Tab label="FHIR Translation" icon={<FHIRIcon />} />
-          <Tab label="Genomic Insights" icon={<InsightsIcon />} />
-        </Tabs>
-      </Paper>
+      {/* AI Feature Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={4}>
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ width: "100%" }}
+          >
+            <Card
+              onClick={() => {
+                setActiveTab(0);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{
+                textAlign: "center",
+                p: 2,
+                height: 120,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 2,
+                width: "100%",
+                mb: 1,
+                cursor: "pointer",
+                border:
+                  activeTab === 0
+                    ? "3px solid #3F37C9"
+                    : "2px solid transparent",
+                "&:hover": {
+                  border: "2px solid #3F37C9",
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+            >
+              <ChatIcon sx={{ fontSize: 32, color: "#3F37C9" }} />
+            </Card>
+            <Typography
+              variant="caption"
+              sx={{
+                color: activeTab === 0 ? "#3F37C9" : "inherit",
+                fontWeight: activeTab === 0 ? "bold" : "normal",
+              }}
+            >
+              Chat Assistant
+            </Typography>
+          </Stack>
+        </Grid>
+        <Grid item xs={4}>
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ width: "100%" }}
+          >
+            <Card
+              onClick={() => {
+                setActiveTab(1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{
+                textAlign: "center",
+                p: 2,
+                height: 120,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 2,
+                width: "100%",
+                mb: 1,
+                cursor: "pointer",
+                border:
+                  activeTab === 1
+                    ? "3px solid #3F37C9"
+                    : "2px solid transparent",
+                "&:hover": {
+                  border: "2px solid #3F37C9",
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+            >
+              <FHIRIcon sx={{ fontSize: 32, color: "#3F37C9" }} />
+            </Card>
+            <Typography
+              variant="caption"
+              sx={{
+                color: activeTab === 1 ? "#3F37C9" : "inherit",
+                fontWeight: activeTab === 1 ? "bold" : "normal",
+              }}
+            >
+              FHIR Translation
+            </Typography>
+          </Stack>
+        </Grid>
+        <Grid item xs={4}>
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ width: "100%" }}
+          >
+            <Card
+              onClick={() => {
+                setActiveTab(2);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{
+                textAlign: "center",
+                p: 2,
+                height: 120,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 2,
+                width: "100%",
+                mb: 1,
+                cursor: "pointer",
+                border:
+                  activeTab === 2
+                    ? "3px solid #3F37C9"
+                    : "2px solid transparent",
+                "&:hover": {
+                  border: "2px solid #3F37C9",
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+            >
+              <InsightsIcon sx={{ fontSize: 32, color: "#3F37C9" }} />
+            </Card>
+            <Typography
+              variant="caption"
+              sx={{
+                color: activeTab === 2 ? "#3F37C9" : "inherit",
+                fontWeight: activeTab === 2 ? "bold" : "normal",
+              }}
+            >
+              Genomic Insights
+            </Typography>
+          </Stack>
+        </Grid>
+      </Grid>
 
       {/* Tab Content */}
       {activeTab === 0 && renderChatTab()}
