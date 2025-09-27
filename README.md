@@ -311,9 +311,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions, support, or collaboration opportunities:
 
-- **Email**: [your-email@domain.com]
-- **GitHub**: [your-github-username]
-- **LinkedIn**: [your-linkedin-profile]
+- **Email**: [amacwhirter@acoer.com]
+- **GitHub**: [amacwhirter]
+- **LinkedIn**: [https://www.linkedin.com/in/amacwhirter/]
 
 ---
 
