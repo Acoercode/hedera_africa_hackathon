@@ -100,7 +100,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
       case "incentive":
         return "#FDAA2B";
       case "ai":
-        return "#4DB8FF";
+        return "#3782C9";
       default:
         return "#3F37C9";
     }
@@ -457,7 +457,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
           <Card sx={{ p: 2, textAlign: "center", borderRadius: 4 }}>
             <Typography
               variant="h4"
-              sx={{ fontWeight: "bold", color: "#4DB8FF" }}
+              sx={{ fontWeight: "bold", color: "#3782C9" }}
             >
               {activities.filter((a) => a.activityType === "ai").length}
             </Typography>
