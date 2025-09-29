@@ -153,8 +153,9 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       setError(null);
 
       // Fetch consents for the logged-in user (including revoked ones)
+      // Use a high limit to get all consents in one request
       const response = await fetch(
-        `${process.env.REACT_APP_API_ROOT}/consent?patientId=${accountId}&includeRevoked=true`,
+        `${process.env.REACT_APP_API_ROOT}/consent?patientId=${accountId}&includeRevoked=true&limit=100`,
       );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -334,11 +335,20 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
       await loadConsents();
     } catch (err: any) {
-      setError("Something went wrong, try again");
       console.error("Consent enable error:", err);
+
+      // On mobile, the transaction might have actually succeeded
+      // Give it a moment and refresh to check
+      setTimeout(async () => {
+        await loadConsents();
+        setProcessing(null);
+        setSelectedConsent(null);
+      }, 2000); // Wait 2 seconds then refresh
+
+      setError("Checking transaction status...");
     } finally {
-      setProcessing(null);
-      setSelectedConsent(null);
+      // Don't clear processing state immediately on error
+      // Let the timeout handle it after refresh
     }
   };
 
