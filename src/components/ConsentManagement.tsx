@@ -1078,10 +1078,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       {/* Consent Dialog */}
       <Dialog
         open={showConsentDialog}
-        onClose={() => {
-          setShowConsentDialog(false);
-          setProcessing(null);
-        }}
+        onClose={() => setShowConsentDialog(false)}
         maxWidth="md"
         fullWidth
       >
@@ -1221,68 +1218,23 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                   </Typography>
                 </Alert>
               )}
-
-              {processing === selectedConsent?.consentId && (
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                      {selectedConsent?.consentType === "genomic_passport"
-                        ? "Creating RDZ Passport NFT..."
-                        : selectedConsent?.consentType === "data_sync"
-                          ? "Creating Data Sync Consent NFT..."
-                          : "Creating Consent NFT..."}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2">
-                    <strong>Please check your wallet!</strong> A transaction has
-                    been sent to your connected wallet.
-                    {selectedConsent?.consentType === "genomic_passport"
-                      ? ` The transaction will show "RDZ Passport Creation" (Token ID: ${HEDERA_CONFIG.PASSPORT_NFT_TOKEN_ID}) for your genomic passport. Please approve to complete the passport creation process.`
-                      : selectedConsent?.consentType === "data_sync"
-                        ? ` The transaction will show "Data Sync Token Association" (Token ID: ${HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID}) for data synchronization. Please approve to complete the data sync consent process.`
-                        : ` The transaction will show "RDZ Consent" (Token ID: ${HEDERA_CONFIG.RESEARCH_CONSENT_NFT_TOKEN_ID}) for the consent NFT. Please approve to complete the consent process.`}
-                  </Typography>
-                </Alert>
-              )}
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => {
-              setShowConsentDialog(false);
-              setProcessing(null);
-            }}
-            disabled={processing === selectedConsent?.consentId}
-          >
-            Cancel
-          </Button>
+          <Button onClick={() => setShowConsentDialog(false)}>Cancel</Button>
           <Button
             onClick={handleAcceptConsent}
             variant="contained"
-            disabled={processing === selectedConsent?.consentId}
-            startIcon={
-              processing === selectedConsent?.consentId ? (
-                <CircularProgress size={20} />
-              ) : (
-                <CheckIcon />
-              )
-            }
+            startIcon={<CheckIcon />}
           >
-            {processing === selectedConsent?.consentId
-              ? selectedConsent?.consentType === "genomic_passport"
-                ? "Creating RDZ Passport NFT..."
-                : selectedConsent?.consentType === "data_sync"
-                  ? "Creating Data Sync Consent NFT..."
-                  : "Creating Consent NFT..."
-              : selectedConsent?.consentType === "genomic_passport"
-                ? "Create RDZ Passport NFT"
-                : selectedConsent?.consentType === "data_sync"
-                  ? "Enable Data Synchronization"
-                  : selectedConsent?.consentId?.includes("-")
-                    ? "Enable Medical Research Consent"
-                    : "Accept & Create Consent NFT"}
+            {selectedConsent?.consentType === "genomic_passport"
+              ? "Create RDZ Passport NFT"
+              : selectedConsent?.consentType === "data_sync"
+                ? "Enable Data Synchronization"
+                : selectedConsent?.consentId?.includes("-")
+                  ? "Enable Medical Research Consent"
+                  : "Accept & Create Consent NFT"}
           </Button>
         </DialogActions>
       </Dialog>
