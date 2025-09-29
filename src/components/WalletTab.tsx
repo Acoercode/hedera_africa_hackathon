@@ -92,7 +92,7 @@ const WalletTab: React.FC = () => {
               description:
                 consent.consentType === "genomic_passport"
                   ? "Genomic data ownership proof"
-                  : `Consent for ${consent.consentType}`,
+                  : `Consent for ${consent.consentType.replace("_", " ")}`,
               transactionId: consent.consentNFTTransactionId,
               status: consent.consentStatus,
               validFrom: consent.validFrom,

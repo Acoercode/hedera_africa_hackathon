@@ -226,11 +226,14 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       setSuccess(null);
 
       if (consent.consentStatus === "revoked") {
+        const newConsentId = `${consent.consentId}-${Date.now()}`;
         setSelectedConsent({
           ...consent,
-          consentId: `${consent.consentId}-${Date.now()}`,
+          consentId: newConsentId,
           consentStatus: "pending",
         });
+        // Update processing state to match the new consent ID
+        setProcessing(newConsentId);
         setShowConsentDialog(true);
       } else {
         setSelectedConsent(consent);
@@ -251,9 +254,11 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       setShowConsentDialog(false);
 
       if (selectedConsent.consentType === "genomic_passport") {
+        const transactionId = `passport-${Date.now()}`;
+
         // Add to pending transactions for mobile tracking
         addPendingTransaction({
-          id: `passport-${Date.now()}`,
+          id: transactionId,
           type: "passport",
           accountId: accountId!,
         });
@@ -262,7 +267,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         await logPassportActivity(selectedConsent, "created");
 
         // Remove from pending transactions
-        removePendingTransaction(`passport-${Date.now()}`);
+        removePendingTransaction(transactionId);
 
         const incentiveInfo = passportResult.incentive
           ? ` You earned ${passportResult.incentive.amount} RDZ incentive tokens!`
@@ -279,9 +284,11 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
         return;
       } else if (selectedConsent.consentType === "data_sync") {
+        const transactionId = `data-sync-${Date.now()}`;
+
         // Add to pending transactions for mobile tracking
         addPendingTransaction({
-          id: `data-sync-${Date.now()}`,
+          id: transactionId,
           type: "data-sync",
           accountId: accountId!,
         });
@@ -290,7 +297,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         await logConsentActivity(selectedConsent, "created");
 
         // Remove from pending transactions
-        removePendingTransaction(`data-sync-${Date.now()}`);
+        removePendingTransaction(transactionId);
 
         let incentiveInfo = "";
         if (dataSyncResult.data.incentive) {
@@ -301,7 +308,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
           }
         }
         setSuccess(
-          `Data sync consent NFT ${dataSyncResult.data.consentNFTTokenId}#${dataSyncResult.data.consentNFTSerialNumber} created successfully.${incentiveInfo}`,
+          `Data sync consent NFT ${dataSyncResult.data.consentNFTTokenId || "N/A"}#${dataSyncResult.data.consentNFTSerialNumber || "N/A"} created successfully.${incentiveInfo}`,
         );
 
         await loadConsents();
@@ -330,7 +337,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         ? ` You earned ${mintResult.incentive.amount} RDZ incentive tokens!`
         : "";
       setSuccess(
-        `Consent enabled and NFT ${mintResult.consentNFTTokenId}#${mintResult.consentNFTSerialNumber} issued.${incentiveInfo}`,
+        `Consent enabled and NFT ${mintResult.consent?.consentNFTTokenId || "N/A"}#${mintResult.consent?.consentNFTSerialNumber || "N/A"} issued.${incentiveInfo}`,
       );
 
       await loadConsents();
@@ -563,7 +570,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       const activityData = {
         userId: accountId,
         activityName: `consent_${action}`,
-        activityDescription: `${action === "granted" ? "Granted" : "Revoked"} consent for genomic research`,
+        activityDescription: `${action === "granted" ? "Granted" : action === "created" ? "Created" : "Revoked"} consent for ${consent.consentType === "data_sync" ? "data synchronization" : "genomic research"}`,
         activityType: "consent",
         metadata: {
           consentId: consent.consentId,
@@ -1079,6 +1086,21 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                     </Typography>
                   </Box>
                 )}
+
+                {/* Processing Indicator for new consents (when enabling revoked) */}
+                {processing &&
+                  processing.startsWith(consent.consentId) &&
+                  processing !== consent.consentId && (
+                    <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+                      <CircularProgress
+                        size={16}
+                        sx={{ mr: 1, color: "primary.main" }}
+                      />
+                      <Typography variant="body2" color="text.secondary">
+                        Enabling NFT...
+                      </Typography>
+                    </Box>
+                  )}
               </Card>
             </Grid>
           ))}
