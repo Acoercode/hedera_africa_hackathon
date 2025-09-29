@@ -3,24 +3,19 @@ import {
   Box,
   Typography,
   Card,
-  CardContent,
   Button,
   Chip,
-  Grid,
   List,
   ListItem,
   ListItemText,
-  ListItemIcon,
   Divider,
   Alert,
   CircularProgress,
+  Stack,
 } from "@mui/material";
-import {
-  Image as NFTIcon,
-  CheckCircle as CheckIcon,
-} from "@mui/icons-material";
+import { Image as NFTIcon } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
-import { apiService, NFT, IncentiveBalance } from "../services/api";
+import { apiService, NFT } from "../services/api";
 import TokenAssociationDialog from "./TokenAssociationDialog";
 
 const WalletTab: React.FC = () => {
@@ -32,13 +27,14 @@ const WalletTab: React.FC = () => {
   const [incentiveAssociationInfo, setIncentiveAssociationInfo] =
     useState<any>(null);
   const [associationDialogOpen, setAssociationDialogOpen] = useState(false);
-  const [associating, setAssociating] = useState(false);
+  const [associating] = useState(false);
 
   // Load user data when wallet connects
   useEffect(() => {
     if (walletInterface && accountId) {
       loadUserData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletInterface, accountId]);
 
   const loadUserData = async () => {
@@ -91,7 +87,7 @@ const WalletTab: React.FC = () => {
                   : "consent",
               name:
                 consent.consentType === "genomic_passport"
-                  ? "Ziva Passport"
+                  ? "RDZ Passport"
                   : "Consent NFT",
               description:
                 consent.consentType === "genomic_passport"
@@ -118,17 +114,6 @@ const WalletTab: React.FC = () => {
     }
   };
 
-  const getNFTIcon = (type: string) => {
-    switch (type) {
-      case "consent":
-        return <CheckIcon color="success" />;
-      case "passport":
-        return <NFTIcon color="primary" />;
-      default:
-        return <NFTIcon color="inherit" />;
-    }
-  };
-
   // This component assumes wallet is already connected (handled by AuthPage)
   if (!walletInterface || !accountId) {
     return (
@@ -137,7 +122,7 @@ const WalletTab: React.FC = () => {
           Wallet
         </Typography>
 
-        <Card sx={{ p: 3, textAlign: "center" }}>
+        <Card sx={{ p: 3, textAlign: "center", borderRadius: 4 }}>
           <NFTIcon sx={{ fontSize: 64, color: "error.main", mb: 2 }} />
           <Typography variant="h6" sx={{ mb: 2 }}>
             Wallet Not Connected
@@ -166,7 +151,7 @@ const WalletTab: React.FC = () => {
       )}
 
       {/* Wallet Status */}
-      <Card sx={{ p: 2, mb: 2 }}>
+      <Card sx={{ p: 2, mb: 2, borderRadius: 4 }}>
         <Box
           sx={{
             display: "flex",
@@ -182,12 +167,24 @@ const WalletTab: React.FC = () => {
               {accountId}
             </Typography>
           </Box>
-          <Chip label="Connected" color="success" />
+          <Chip
+            label="Connected"
+            sx={{
+              backgroundColor: "#37C9A450",
+              border: "1px solid #37C9A4",
+              color: "#0E1133",
+              borderRadius: 3,
+              fontWeight: "500",
+              fontSize: "0.7rem",
+              height: "24px",
+              width: "100px",
+            }}
+          />
         </Box>
       </Card>
 
       {/* RDZ Token Balance */}
-      <Card sx={{ p: 2, mb: 2 }}>
+      <Card sx={{ p: 2, mb: 2, borderRadius: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
           RDZ Token Balance
         </Typography>
@@ -243,7 +240,7 @@ const WalletTab: React.FC = () => {
       </Card>
 
       {/* My NFTs */}
-      <Card sx={{ p: 2, mb: 2 }}>
+      <Card sx={{ p: 2, mb: 2, borderRadius: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
           My NFTs ({nfts.length})
         </Typography>
@@ -256,30 +253,48 @@ const WalletTab: React.FC = () => {
             {nfts.map((nft, index) => (
               <React.Fragment key={`${nft.tokenId}-${nft.serialNumber}`}>
                 <ListItem>
-                  <ListItemIcon>{getNFTIcon(nft.type)}</ListItemIcon>
+                  {/* <ListItemIcon>{getNFTIcon(nft.type)}</ListItemIcon> */}
                   <ListItemText
                     primary={
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Typography variant="body1">{nft.name}</Typography>
-                        <Chip
-                          label={
-                            nft.status === "granted"
-                              ? "Active"
-                              : nft.status === "revoked"
-                                ? "Revoked"
-                                : nft.status
-                          }
-                          color={
-                            nft.status === "granted"
-                              ? "success"
-                              : nft.status === "revoked"
-                                ? "error"
-                                : "default"
-                          }
-                          size="small"
-                        />
+                      <Box>
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          justifyContent="space-between"
+                        >
+                          <Typography variant="body1">{nft.name}</Typography>
+                          <Chip
+                            label={
+                              nft.status === "granted"
+                                ? "Active"
+                                : nft.status === "revoked"
+                                  ? "Revoked"
+                                  : nft.status
+                            }
+                            sx={{
+                              backgroundColor:
+                                nft.status === "granted"
+                                  ? "#37C9A450"
+                                  : nft.status === "revoked"
+                                    ? "#C9373950"
+                                    : "#0E113350",
+                              border: `1px solid ${
+                                nft.status === "granted"
+                                  ? "#37C9A4"
+                                  : nft.status === "revoked"
+                                    ? "#C93739"
+                                    : "#0E1133"
+                              }`,
+                              color: "#0E1133",
+                              borderRadius: 3,
+                              fontWeight: "400",
+                              fontSize: "0.7rem",
+                              height: "24px",
+                              width: "100px",
+                            }}
+                            size="small"
+                          />
+                        </Stack>
                       </Box>
                     }
                     secondary={
@@ -335,7 +350,13 @@ const WalletTab: React.FC = () => {
 
       {/* Info Card */}
       <Card
-        sx={{ p: 2, mb: 2, bgcolor: "info.light", color: "info.contrastText" }}
+        sx={{
+          p: 2,
+          mb: 2,
+          bgcolor: "info.light",
+          color: "info.contrastText",
+          borderRadius: 4,
+        }}
       >
         <Typography variant="body2" sx={{ textAlign: "center" }}>
           💡 <strong>Tip:</strong> View your complete transaction history and

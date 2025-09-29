@@ -1,6 +1,6 @@
 # Environment Variables Configuration
 
-This document outlines the environment variables needed for the Ziva Health genomic data management application.
+This document outlines the environment variables needed for the RDZ Health genomic data management application.
 
 ## Required Environment Variables
 

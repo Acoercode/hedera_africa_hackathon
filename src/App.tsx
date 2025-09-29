@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material";
 import { AllWalletsProvider } from "./services/wallets/AllWalletsProvider";
-import ZivaHealthApp from "./components/ZivaHealthApp";
+import RdzHealthApp from "./components/RdzHealthApp";
 import AuthPage from "./components/AuthPage";
 import { theme } from "./theme";
 import { WalletConnectContext } from "./contexts/WalletConnectContext";
@@ -36,7 +36,7 @@ const AppContent: React.FC = () => {
       <CssBaseline />
       {isAuthenticated ? (
         <UserProvider accountId={currentAccountId}>
-          <ZivaHealthApp onLogout={handleLogout} />
+          <RdzHealthApp onLogout={handleLogout} />
         </UserProvider>
       ) : (
         <AuthPage onAuthSuccess={handleAuthSuccess} />

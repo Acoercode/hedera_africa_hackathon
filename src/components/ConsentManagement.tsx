@@ -9,7 +9,6 @@ import {
   Alert,
   CircularProgress,
   Grid,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -80,8 +79,18 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         "Enable data synchronization of your genomic data into the RDZ platform",
       detailedDescription:
         "This consent allows your genomic data to be synchronized across research platforms and enables you to participate in ongoing and future research studies. You will receive updates about research findings related to your genomic profile.",
-      dataTypes: ["whole_genome", "exome", "targeted_panel"],
-      purposes: ["data_synchronization"],
+      dataTypes: [
+        "whole_genome",
+        "exome",
+        "targeted_panel",
+        "rna_seq",
+        "methylation",
+      ],
+      purposes: [
+        "data_synchronization",
+        "platform_integration",
+        "research_notifications",
+      ],
       defaultStatus: "pending",
       nftTokenId: null,
       nftSerialNumber: null,
@@ -92,11 +101,23 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       consentType: "genomic_analysis",
       name: "Medical Research Participation",
       description:
-        "Share genomic data for medical research and drug development",
+        "Allow approved studies to use your genomic data for medical research and drug development.",
       detailedDescription:
         "This consent allows researchers to use your genomic data to advance medical knowledge, develop new treatments, and understand genetic diseases. Your data will be anonymized and used only for legitimate research purposes.",
-      dataTypes: ["whole_genome", "exome", "targeted_panel"],
-      purposes: ["research", "drug_development", "population_studies"],
+      dataTypes: [
+        "anonymized_variants",
+        "gene_level_summaries",
+        "phenotype_tags",
+        "de_identified_demographics",
+        "aggregate_stats",
+      ],
+      purposes: [
+        "irb_approved_studies",
+        "genetic_association",
+        "drug_biomarker_discovery",
+        "population_genomics",
+        "method_validation",
+      ],
       defaultStatus: "pending",
       nftTokenId: null,
       nftSerialNumber: null,
@@ -107,11 +128,15 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       consentType: "genomic_passport",
       name: "RDZ Passport",
       description:
-        "Create your RDZ Passport NFT proving ownership of your genomic data",
+        "Create your RDZ Health Passport NFT proving ownership of your genomic data, without sharing data.",
       detailedDescription:
         "This creates your unique RDZ Passport NFT that serves as proof of ownership of your genomic data. Your RDZ Passport acts as an identity badge that proves you have genomic data stored and controlled off-chain. The NFT does not contain your actual genomic data, just cryptographic proof of ownership.",
-      dataTypes: ["genomic_passport"],
-      purposes: ["data_ownership_proof"],
+      dataTypes: ["genomic_passport", "ownership_proof", "data_hash"],
+      purposes: [
+        "data_ownership_proof",
+        "identity_verification",
+        "access_control",
+      ],
       defaultStatus: "pending",
       nftTokenId: null,
       nftSerialNumber: null,
@@ -544,19 +569,6 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
     }
   };
 
-  const getConsentStatusColor = (status: string) => {
-    switch (status) {
-      case "granted":
-        return "success";
-      case "revoked":
-        return "error";
-      case "pending":
-        return "warning";
-      default:
-        return "default";
-    }
-  };
-
   const getConsentStatusIcon = (status: string) => {
     switch (status) {
       case "granted":
@@ -590,13 +602,24 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       <Box sx={{ mb: 3 }}>
         <Typography
           variant="h5"
-          sx={{ fontWeight: "bold", mb: 1, color: "text.primary" }}
+          sx={{
+            fontWeight: "bold",
+            mb: 1,
+            color: "#0E1133",
+            fontSize: "1.3rem",
+          }}
         >
-          Consent Management
+          Data Sharing & Consent
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Enable or disable predefined consent types for your genomic data
-          sharing
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#666666",
+            fontSize: "0.9rem",
+          }}
+        >
+          Manage who can use your data. Turn sharing on or off; each change is
+          saved on Hedera with a Consent NFT in your wallet.
         </Typography>
       </Box>
 
@@ -642,19 +665,37 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         <Grid container spacing={2}>
           {consents.map((consent) => (
             <Grid item xs={12} key={consent.consentId}>
-              <Card sx={{ p: 3 }}>
+              <Card
+                sx={{
+                  p: 2,
+                  borderRadius: 4,
+                  boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.06)",
+                  border: "1px solid #e8e8e8",
+                  backgroundColor: "#ffffff",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    boxShadow: "0px 4px 16px rgba(0, 0, 0, 0.1)",
+                    transform: "translateY(-1px)",
+                  },
+                }}
+              >
                 <Box
                   sx={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "flex-start",
+                    alignItems: "center",
                     mb: 2,
                   }}
                 >
-                  <Box sx={{ flex: 1 }}>
+                  <Box sx={{ flex: 1, pr: 2 }}>
                     <Typography
                       variant="h6"
-                      sx={{ mb: 1, color: "text.primary", fontWeight: "bold" }}
+                      sx={{
+                        mb: 0.5,
+                        color: "#3F37C9",
+                        fontWeight: "bold",
+                        fontSize: "1rem",
+                      }}
                     >
                       {predefinedConsentTypes.find(
                         (ct) => ct.consentType === consent.consentType,
@@ -664,21 +705,40 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                     <Typography
                       variant="body2"
                       color="text.secondary"
-                      sx={{ mb: 1 }}
+                      sx={{ mb: 1, lineHeight: 1.4, fontSize: "0.85rem" }}
                     >
                       {predefinedConsentTypes.find(
                         (ct) => ct.consentType === consent.consentType,
                       )?.description ||
                         "Manage your consent for this data type"}
                     </Typography>
-                    <Chip
-                      icon={getConsentStatusIcon(consent.consentStatus)}
-                      label={consent.consentStatus.toUpperCase()}
-                      color={
-                        getConsentStatusColor(consent.consentStatus) as any
-                      }
-                      size="small"
-                    />
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Chip
+                        icon={getConsentStatusIcon(consent.consentStatus)}
+                        label={consent.consentStatus.toUpperCase()}
+                        size="small"
+                        sx={{
+                          backgroundColor:
+                            consent.consentStatus === "granted"
+                              ? "#37C9A430"
+                              : consent.consentStatus === "pending"
+                                ? "#FDAA2B30"
+                                : "#ff6b6b30",
+                          border: `1px solid ${
+                            consent.consentStatus === "granted"
+                              ? "#37C9A4"
+                              : consent.consentStatus === "pending"
+                                ? "#FDAA2B"
+                                : "#ff6b6b"
+                          }`,
+                          color: "#0E1133",
+                          fontWeight: "500",
+                          borderRadius: 2,
+                          fontSize: "0.65rem",
+                          height: "20px",
+                        }}
+                      />
+                    </Box>
                   </Box>
 
                   <FormControlLabel
@@ -689,184 +749,228 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                           handleConsentToggle(consent, e.target.checked)
                         }
                         disabled={processing === consent.consentId}
-                        color={
-                          consent.consentStatus === "revoked"
-                            ? "warning"
-                            : "success"
-                        }
+                        sx={{
+                          "& .MuiSwitch-switchBase.Mui-checked": {
+                            color: "#37C9A4",
+                          },
+                          "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                            {
+                              backgroundColor: "#37C9A4",
+                            },
+                        }}
                       />
                     }
-                    label={
-                      consent.consentStatus === "granted"
-                        ? "Enabled"
-                        : consent.consentStatus === "revoked"
-                          ? "Re-enable"
-                          : "Disabled"
-                    }
+                    label=""
                     labelPlacement="start"
                   />
                 </Box>
 
                 {/* NFT Information */}
                 {consent.consentNFTTokenId && (
-                  <Paper
+                  <Box
                     sx={{
-                      p: 2,
-                      mb: 2,
-                      backgroundColor: "grey.50",
-                      border: "1px solid",
-                      borderColor: "grey.200",
+                      p: 1.5,
+                      mb: 1.5,
+                      backgroundColor: "#f8f9fa",
+                      border: "1px solid #e9ecef",
+                      borderRadius: 2,
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      <NFTIcon sx={{ mr: 1, color: "primary.main" }} />
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 0.5,
+                      }}
+                    >
+                      <NFTIcon sx={{ fontSize: "1rem", color: "#3F37C9" }} />
                       <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: "bold", color: "text.primary" }}
+                        variant="caption"
+                        sx={{
+                          fontWeight: "bold",
+                          color: "#0E1133",
+                          fontSize: "0.75rem",
+                        }}
                       >
                         {consent.consentType === "genomic_passport"
                           ? "RDZ Passport NFT"
                           : "Consent NFT"}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Token ID: {consent.consentNFTTokenId}
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.7rem" }}
+                    >
+                      Token: {consent.consentNFTTokenId} • Serial:{" "}
+                      {consent.consentNFTSerialNumber}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Serial: {consent.consentNFTSerialNumber}
-                    </Typography>
-                  </Paper>
+                  </Box>
                 )}
 
-                {/* Consent Details */}
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: "bold", mb: 1, color: "text.primary" }}
-                    >
-                      Data Types
-                    </Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {consent.dataTypes.map((type, index) => (
-                        <Chip
-                          key={index}
-                          label={type.replace("_", " ")}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            borderColor: "primary.main",
-                            color: "primary.main",
-                            "&:hover": {
-                              backgroundColor: "primary.light",
-                              color: "white",
-                            },
-                          }}
-                        />
-                      ))}
-                    </Box>
+                {/* Data Types and Purposes */}
+                <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #f0f0f0" }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: "600",
+                          mb: 1,
+                          color: "#666666",
+                          fontSize: "0.7rem",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.3px",
+                        }}
+                      >
+                        Data Types
+                      </Typography>
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {consent.dataTypes.map((type, index) => (
+                          <Chip
+                            key={index}
+                            label={type
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                            size="small"
+                            sx={{
+                              backgroundColor: "#3F37C920",
+                              border: "1px solid #3F37C9",
+                              color: "#0E1133",
+                              borderRadius: 2,
+                              fontWeight: "400",
+                              fontSize: "0.65rem",
+                              height: "22px",
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: "600",
+                          mb: 1,
+                          color: "#666666",
+                          fontSize: "0.7rem",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.3px",
+                        }}
+                      >
+                        Purposes
+                      </Typography>
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {consent.purposes.map((purpose, index) => (
+                          <Chip
+                            key={index}
+                            label={purpose
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                            size="small"
+                            sx={{
+                              backgroundColor: "#37C9A420",
+                              border: "1px solid #37C9A4",
+                              color: "#0E1133",
+                              borderRadius: 2,
+                              fontWeight: "400",
+                              fontSize: "0.65rem",
+                              height: "22px",
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </Grid>
                   </Grid>
+                </Box>
 
-                  <Grid item xs={12} sm={6}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: "bold", mb: 1, color: "text.primary" }}
-                    >
-                      Purposes
-                    </Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {consent.purposes.map((purpose, index) => (
-                        <Chip
-                          key={index}
-                          label={purpose.replace("_", " ")}
-                          size="small"
-                          variant="outlined"
+                {/* Show validity period if consent is granted */}
+                {consent.consentStatus === "granted" && consent.validUntil && (
+                  <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #f0f0f0" }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          variant="caption"
                           sx={{
-                            borderColor: "secondary.main",
-                            color: "secondary.main",
-                            "&:hover": {
-                              backgroundColor: "secondary.light",
-                              color: "white",
-                            },
+                            fontWeight: "600",
+                            mb: 0.5,
+                            color: "#666666",
+                            fontSize: "0.7rem",
+                            textTransform: "uppercase",
                           }}
-                        />
-                      ))}
-                    </Box>
-                  </Grid>
-
-                  {/* Show validity period if consent is granted */}
-                  {consent.consentStatus === "granted" &&
-                    consent.validUntil && (
-                      <>
-                        <Grid item xs={12} sm={6}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              fontWeight: "bold",
-                              mb: 1,
-                              color: "text.primary",
-                            }}
-                          >
-                            Valid Until
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {new Date(consent.validUntil).toLocaleDateString()}
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              fontWeight: "bold",
-                              mb: 1,
-                              color: "text.primary",
-                            }}
-                          >
-                            Consent Hash
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{
-                              fontFamily: "monospace",
-                              fontSize: "0.75rem",
-                              wordBreak: "break-all",
-                            }}
-                          >
-                            {consent.consentHash
-                              ? `${consent.consentHash.substring(0, 16)}...`
-                              : "Not available"}
-                          </Typography>
-                        </Grid>
-                      </>
-                    )}
-
-                  {/* Show revocation info if consent is revoked */}
-                  {consent.consentStatus === "revoked" && (
-                    <>
-                      <Grid item xs={12}>
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                          <Typography variant="body2">
-                            <strong>Consent Revoked:</strong> This consent has
-                            been permanently revoked. You can create a new
-                            consent by toggling the switch above, which will
-                            mint a new NFT while keeping this revocation record
-                            for audit purposes.
-                          </Typography>
-                        </Alert>
+                        >
+                          Valid Until
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: "0.8rem" }}
+                        >
+                          {new Date(consent.validUntil).toLocaleDateString()}
+                        </Typography>
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <Typography
-                          variant="subtitle2"
+                          variant="caption"
                           sx={{
-                            fontWeight: "bold",
-                            mb: 1,
-                            color: "error.main",
+                            fontWeight: "600",
+                            mb: 0.5,
+                            color: "#666666",
+                            fontSize: "0.7rem",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Consent Hash
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            fontFamily: "monospace",
+                            fontSize: "0.7rem",
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          {consent.consentHash
+                            ? `${consent.consentHash.substring(0, 12)}...`
+                            : "Not available"}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                )}
+
+                {/* Show revocation info if consent is revoked */}
+                {consent.consentStatus === "revoked" && (
+                  <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #f0f0f0" }}>
+                    <Alert severity="info" sx={{ mb: 1.5, py: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
+                        <strong>Consent Revoked:</strong> This consent has been
+                        permanently revoked. You can create a new consent by
+                        toggling the switch above.
+                      </Typography>
+                    </Alert>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: "600",
+                            mb: 0.5,
+                            color: "#666666",
+                            fontSize: "0.7rem",
+                            textTransform: "uppercase",
                           }}
                         >
                           Revoked At
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: "0.8rem" }}
+                        >
                           {consent.revokedAt
                             ? new Date(consent.revokedAt).toLocaleDateString()
                             : "Unknown"}
@@ -874,48 +978,29 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <Typography
-                          variant="subtitle2"
+                          variant="caption"
                           sx={{
-                            fontWeight: "bold",
-                            mb: 1,
-                            color: "error.main",
+                            fontWeight: "600",
+                            mb: 0.5,
+                            color: "#666666",
+                            fontSize: "0.7rem",
+                            textTransform: "uppercase",
                           }}
                         >
-                          Revocation Reason
+                          Reason
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: "0.8rem" }}
+                        >
                           {consent.revocationReason ||
                             "User requested revocation"}
                         </Typography>
                       </Grid>
-                      {consent.revocationTransactionId && (
-                        <Grid item xs={12}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              fontWeight: "bold",
-                              mb: 1,
-                              color: "error.main",
-                            }}
-                          >
-                            Revocation Transaction
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{
-                              fontFamily: "monospace",
-                              fontSize: "0.75rem",
-                              wordBreak: "break-all",
-                            }}
-                          >
-                            {consent.revocationTransactionId}
-                          </Typography>
-                        </Grid>
-                      )}
-                    </>
-                  )}
-                </Grid>
+                    </Grid>
+                  </Box>
+                )}
 
                 {/* Processing Indicator */}
                 {processing === consent.consentId && (

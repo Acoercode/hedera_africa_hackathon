@@ -15,7 +15,6 @@ import {
 import {
   Sync as SyncIcon,
   Security as SecurityIcon,
-  Warning as WarningIcon,
 } from "@mui/icons-material";
 import { HEDERA_CONFIG } from "../config/constants";
 

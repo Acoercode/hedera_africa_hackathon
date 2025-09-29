@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Avatar,
   Grid,
   Alert,
   CircularProgress,
@@ -13,7 +12,6 @@ import {
   Button,
 } from "@mui/material";
 import {
-  Science as ScienceIcon,
   Security as SecurityIcon,
   Verified as VerifiedIcon,
   CheckCircle as CheckIcon,
@@ -41,6 +39,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
       setError(null);
       checkUserExists();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletInterface, accountId]);
 
   const checkUserExists = async () => {

@@ -9,7 +9,6 @@ import {
   Paper,
   Alert,
   CircularProgress,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -21,10 +20,6 @@ import {
   Stack,
 } from "@mui/material";
 import {
-  SmartToy as AIIcon,
-  Translate as FHIRIcon,
-  Chat as ChatIcon,
-  Insights as InsightsIcon,
   Send as SendIcon,
   ExpandMore as ExpandMoreIcon,
   Download as DownloadIcon,
@@ -32,6 +27,9 @@ import {
 } from "@mui/icons-material";
 import { useUser } from "../contexts/UserContext";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
+import { ReactComponent as ChatIcon } from "../assets/ai_icon_color.svg";
+import { ReactComponent as FHIRIcon } from "../assets/fhir_icon.svg";
+import { ReactComponent as InsightsIcon } from "../assets/trends_icon.svg";
 
 interface ChatMessage {
   id: string;
@@ -275,35 +273,45 @@ const AITab: React.FC = () => {
   };
 
   const renderChatTab = () => (
-    <Box>
-      <Typography
-        variant="h6"
-        sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
-      >
-        <ChatIcon color="primary" />
-        AI Health Assistant
-      </Typography>
-
-      <Alert severity="info" sx={{ mb: 2 }}>
-        <Typography variant="body2">
-          <strong>Important:</strong> This AI assistant is for informational
-          purposes only and should not replace professional medical advice.
-          Always consult with your healthcare provider for medical decisions.
-        </Typography>
-      </Alert>
-
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Chat Messages */}
-      <Paper sx={{ height: 400, overflow: "auto", mb: 2, p: 2 }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          p: 2,
+          mb: 2,
+          backgroundColor: "#fafafa",
+          borderRadius: 2,
+          minHeight: 400,
+          maxHeight: 500,
+        }}
+      >
         {chatMessages.length === 0 ? (
-          <Box sx={{ textAlign: "center", mt: 4 }}>
-            <AIIcon sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
-            <Typography variant="body1" color="text.secondary">
-              Start a conversation about your genomic data
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Ask questions about your genetic findings, health implications, or
-              any concerns you may have.
-            </Typography>
+          <Box sx={{ textAlign: "center", mt: 6 }}>
+            <Box
+              sx={{
+                display: "inline-block",
+                p: 2,
+                mb: 3,
+                backgroundColor: "#e3f2fd",
+                borderRadius: 3,
+                maxWidth: "80%",
+                textAlign: "left",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "#666666",
+                  fontSize: "0.9rem",
+                  lineHeight: 1.5,
+                }}
+              >
+                Ask questions about your genetic findings, health implications,
+                or any concerns you may have.
+              </Typography>
+            </Box>
           </Box>
         ) : (
           chatMessages.map((message) => (
@@ -316,46 +324,69 @@ const AITab: React.FC = () => {
                   message.role === "user" ? "flex-end" : "flex-start",
               }}
             >
-              <Paper
+              <Box
                 sx={{
                   p: 2,
-                  maxWidth: "80%",
-                  bgcolor:
-                    message.role === "user" ? "primary.main" : "grey.100",
-                  color: message.role === "user" ? "white" : "text.primary",
+                  maxWidth: "85%",
+                  borderRadius: 3,
+                  backgroundColor:
+                    message.role === "user" ? "#3F37C9" : "#e3f2fd",
+                  color: message.role === "user" ? "white" : "#333333",
+                  boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)",
+                  position: "relative",
                 }}
               >
-                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                  {message.content}
-                </Typography>
                 <Typography
-                  variant="caption"
+                  variant="body2"
                   sx={{
-                    display: "block",
-                    mt: 1,
-                    opacity: 0.7,
-                    fontSize: "0.7rem",
+                    whiteSpace: "pre-wrap",
+                    fontSize: "0.9rem",
+                    lineHeight: 1.5,
                   }}
                 >
-                  {message.timestamp.toLocaleTimeString()}
+                  {message.content}
                 </Typography>
-              </Paper>
+              </Box>
             </Box>
           ))
         )}
         {chatLoading && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-            <CircularProgress size={20} />
-            <Typography variant="body2" color="text.secondary">
-              AI is thinking...
-            </Typography>
+          <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
+            <Box
+              sx={{
+                p: 2,
+                maxWidth: "85%",
+                borderRadius: 3,
+                backgroundColor: "#e3f2fd",
+                color: "#333333",
+                boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CircularProgress size={16} sx={{ color: "#3F37C9" }} />
+              <Typography variant="body2" sx={{ fontSize: "0.9rem" }}>
+                AI is thinking...
+              </Typography>
+            </Box>
           </Box>
         )}
         <div ref={chatEndRef} />
-      </Paper>
+      </Box>
 
       {/* Chat Input */}
-      <Box sx={{ display: "flex", gap: 1 }}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 1,
+          alignItems: "flex-end",
+          backgroundColor: "white",
+          p: 1,
+          borderRadius: 3,
+          boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.1)",
+        }}
+      >
         <TextField
           fullWidth
           multiline
@@ -370,35 +401,49 @@ const AITab: React.FC = () => {
             }
           }}
           disabled={chatLoading}
+          variant="outlined"
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+              backgroundColor: "#f8f9fa",
+              "& fieldset": {
+                border: "none",
+              },
+              "&:hover fieldset": {
+                border: "none",
+              },
+              "&.Mui-focused fieldset": {
+                border: "none",
+              },
+            },
+          }}
         />
-        <IconButton
+        <Button
+          variant="contained"
           onClick={handleChatSubmit}
           disabled={!currentQuestion.trim() || chatLoading}
-          color="primary"
+          sx={{
+            minWidth: "auto",
+            px: 2,
+            py: 1.5,
+            borderRadius: 2,
+            backgroundColor: "#3F37C9",
+            "&:hover": {
+              backgroundColor: "#2d2a9a",
+            },
+            "&:disabled": {
+              backgroundColor: "#e0e0e0",
+            },
+          }}
         >
           <SendIcon />
-        </IconButton>
+        </Button>
       </Box>
     </Box>
   );
 
   const renderFHIRTab = () => (
     <Box>
-      <Typography
-        variant="h6"
-        sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
-      >
-        <FHIRIcon color="primary" />
-        FHIR Translation
-      </Typography>
-
-      <Alert severity="info" sx={{ mb: 2 }}>
-        <Typography variant="body2">
-          Convert your genomic data to FHIR R4 format for interoperability with
-          healthcare systems.
-        </Typography>
-      </Alert>
-
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 1 }}>
@@ -412,7 +457,7 @@ const AITab: React.FC = () => {
 
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
             <Button
-              variant="contained"
+              variant="outlined"
               onClick={handleFHIRTranslation}
               disabled={fhirLoading || !genomicData}
               startIcon={
@@ -436,7 +481,7 @@ const AITab: React.FC = () => {
           {fhirBundle && (
             <Alert severity="success" sx={{ mb: 2 }}>
               <Typography variant="body2">
-                ✅ FHIR bundle created successfully! Click "View FHIR Bundle" to
+                FHIR bundle created successfully! Click "View FHIR Bundle" to
                 see the complete bundle or use the copy/download buttons.
               </Typography>
             </Alert>
@@ -534,21 +579,6 @@ const AITab: React.FC = () => {
 
   const renderInsightsTab = () => (
     <Box>
-      <Typography
-        variant="h6"
-        sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
-      >
-        <InsightsIcon color="primary" />
-        Genomic Insights
-      </Typography>
-
-      <Alert severity="info" sx={{ mb: 2 }}>
-        <Typography variant="body2">
-          Get comprehensive AI-generated insights about your genomic data,
-          including health implications and recommendations.
-        </Typography>
-      </Alert>
-
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 1 }}>
@@ -561,7 +591,7 @@ const AITab: React.FC = () => {
           </Typography>
 
           <Button
-            variant="contained"
+            variant="outlined"
             onClick={handleGenerateInsights}
             disabled={insightsLoading || !genomicData}
             startIcon={
@@ -616,10 +646,17 @@ const AITab: React.FC = () => {
     <Box>
       <Typography
         variant="h5"
-        sx={{ mb: 3, fontWeight: "bold", color: "#0d0d0d" }}
+        sx={{ mb: 1, fontWeight: "bold", color: "#0d0d0d" }}
       >
         AI Assistant
       </Typography>
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        <Typography variant="caption">
+          <strong>Important:</strong> This AI assistant is for informational
+          purposes only and should not replace professional medical advice.
+          Always consult with your healthcare provider for medical decisions.
+        </Typography>
+      </Alert>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -654,7 +691,7 @@ const AITab: React.FC = () => {
               sx={{
                 textAlign: "center",
                 p: 2,
-                height: 120,
+                height: 88,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
@@ -673,7 +710,7 @@ const AITab: React.FC = () => {
                 },
               }}
             >
-              <ChatIcon sx={{ fontSize: 32, color: "#3F37C9" }} />
+              <ChatIcon style={{ height: 40, color: "#3F37C9" }} />
             </Card>
             <Typography
               variant="caption"
@@ -701,7 +738,7 @@ const AITab: React.FC = () => {
               sx={{
                 textAlign: "center",
                 p: 2,
-                height: 120,
+                height: 88,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
@@ -720,7 +757,7 @@ const AITab: React.FC = () => {
                 },
               }}
             >
-              <FHIRIcon sx={{ fontSize: 32, color: "#3F37C9" }} />
+              <FHIRIcon style={{ height: 40, color: "#3F37C9" }} />
             </Card>
             <Typography
               variant="caption"
@@ -748,7 +785,7 @@ const AITab: React.FC = () => {
               sx={{
                 textAlign: "center",
                 p: 2,
-                height: 120,
+                height: 88,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
@@ -767,7 +804,7 @@ const AITab: React.FC = () => {
                 },
               }}
             >
-              <InsightsIcon sx={{ fontSize: 32, color: "#3F37C9" }} />
+              <InsightsIcon style={{ height: 40, color: "#3F37C9" }} />
             </Card>
             <Typography
               variant="caption"

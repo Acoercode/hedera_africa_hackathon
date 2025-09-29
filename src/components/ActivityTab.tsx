@@ -6,27 +6,25 @@ import {
   CardContent,
   List,
   ListItem,
+  Link,
   ListItemText,
-  ListItemIcon,
   Chip,
   CircularProgress,
   Alert,
-  Tabs,
-  Tab,
   Grid,
-  Paper,
   IconButton,
+  Stack,
 } from "@mui/material";
 import {
-  CheckCircle as CheckIcon,
-  Upload as UploadIcon,
-  Star as StarIcon,
-  Science as ScienceIcon,
   History as HistoryIcon,
   Refresh as RefreshIcon,
-  MonetizationOn as IncentiveIcon,
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
+import { ReactComponent as ChatIcon } from "../assets/ai_icon_color.svg";
+import { ReactComponent as BenefitsIcon } from "../assets/benefits_icon.svg";
+import { ReactComponent as ConsentIcon } from "../assets/consent_icon.svg";
+import { ReactComponent as DataIcon } from "../assets/data_icon.svg";
+import { ReactComponent as AllActivityIcon } from "../assets/all_activity_icon.svg";
 
 interface Activity {
   activityId: string;
@@ -93,37 +91,18 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
     }
   };
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case "consent":
-        return <CheckIcon color="success" />;
-      case "data":
-        return <UploadIcon color="primary" />;
-      case "reward":
-        return <StarIcon color="secondary" />;
-      case "incentive":
-        return <IncentiveIcon color="warning" />;
-      case "ai":
-        return <ScienceIcon color="info" />;
-      default:
-        return <HistoryIcon color="action" />;
-    }
-  };
-
   const getActivityTypeColor = (type: string) => {
     switch (type) {
       case "consent":
-        return "success";
+        return "#37C9A4";
       case "data":
-        return "primary";
-      case "reward":
-        return "secondary";
+        return "#3F37C9";
       case "incentive":
-        return "warning";
+        return "#FDAA2B";
       case "ai":
-        return "info";
+        return "#4DB8FF";
       default:
-        return "default";
+        return "#3F37C9";
     }
   };
 
@@ -188,26 +167,254 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
         </Alert>
       )}
 
-      {/* Activity Tabs */}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs
-          value={selectedTab}
-          onChange={(e, newValue) => setSelectedTab(newValue)}
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab label="All Activities" />
-          <Tab label="Consent" />
-          <Tab label="Data" />
-          <Tab label="Incentives" />
-          <Tab label="AI" />
-        </Tabs>
-      </Paper>
+      {/* Activity Filter Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={2.4}>
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ width: "100%" }}
+          >
+            <Card
+              onClick={() => {
+                setSelectedTab(0);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{
+                textAlign: "center",
+                p: 2,
+                height: 88,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 4,
+                width: "100%",
+                mb: 1,
+                cursor: "pointer",
+                border:
+                  selectedTab === 0
+                    ? "3px solid #3F37C9"
+                    : "2px solid transparent",
+                "&:hover": {
+                  border: "2px solid #3F37C9",
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+            >
+              <AllActivityIcon style={{ height: 30 }} />
+            </Card>
+            <Typography
+              variant="caption"
+              sx={{
+                color: selectedTab === 0 ? "#3F37C9" : "inherit",
+                fontWeight: selectedTab === 0 ? "bold" : "normal",
+                textAlign: "center",
+              }}
+            >
+              All Activities
+            </Typography>
+          </Stack>
+        </Grid>
+        <Grid item xs={2.4}>
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ width: "100%" }}
+          >
+            <Card
+              onClick={() => {
+                setSelectedTab(1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{
+                textAlign: "center",
+                p: 2,
+                height: 88,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 4,
+                width: "100%",
+                mb: 1,
+                cursor: "pointer",
+                border:
+                  selectedTab === 1
+                    ? "3px solid #3F37C9"
+                    : "2px solid transparent",
+                "&:hover": {
+                  border: "2px solid #3F37C9",
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+            >
+              <ConsentIcon style={{ height: 32 }} />
+            </Card>
+            <Typography
+              variant="caption"
+              sx={{
+                color: selectedTab === 1 ? "#3F37C9" : "inherit",
+                fontWeight: selectedTab === 1 ? "bold" : "normal",
+                textAlign: "center",
+              }}
+            >
+              Consent
+            </Typography>
+          </Stack>
+        </Grid>
+        <Grid item xs={2.4}>
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ width: "100%" }}
+          >
+            <Card
+              onClick={() => {
+                setSelectedTab(2);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{
+                textAlign: "center",
+                p: 2,
+                height: 88,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 4,
+                width: "100%",
+                mb: 1,
+                cursor: "pointer",
+                border:
+                  selectedTab === 2
+                    ? "3px solid #3F37C9"
+                    : "2px solid transparent",
+                "&:hover": {
+                  border: "2px solid #3F37C9",
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+            >
+              <DataIcon style={{ height: 32 }} />
+            </Card>
+            <Typography
+              variant="caption"
+              sx={{
+                color: selectedTab === 2 ? "#3F37C9" : "inherit",
+                fontWeight: selectedTab === 2 ? "bold" : "normal",
+                textAlign: "center",
+              }}
+            >
+              Data
+            </Typography>
+          </Stack>
+        </Grid>
+        <Grid item xs={2.4}>
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ width: "100%" }}
+          >
+            <Card
+              onClick={() => {
+                setSelectedTab(3);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{
+                textAlign: "center",
+                p: 2,
+                height: 88,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 4,
+                width: "100%",
+                mb: 1,
+                cursor: "pointer",
+                border:
+                  selectedTab === 3
+                    ? "3px solid #3F37C9"
+                    : "2px solid transparent",
+                "&:hover": {
+                  border: "2px solid #3F37C9",
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+            >
+              <BenefitsIcon style={{ height: 32 }} />
+            </Card>
+            <Typography
+              variant="caption"
+              sx={{
+                color: selectedTab === 3 ? "#3F37C9" : "inherit",
+                fontWeight: selectedTab === 3 ? "bold" : "normal",
+                textAlign: "center",
+              }}
+            >
+              Incentives
+            </Typography>
+          </Stack>
+        </Grid>
+        <Grid item xs={2.4}>
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ width: "100%" }}
+          >
+            <Card
+              onClick={() => {
+                setSelectedTab(4);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              sx={{
+                textAlign: "center",
+                p: 2,
+                height: 88,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 4,
+                width: "100%",
+                mb: 1,
+                cursor: "pointer",
+                border:
+                  selectedTab === 4
+                    ? "3px solid #3F37C9"
+                    : "2px solid transparent",
+                "&:hover": {
+                  border: "2px solid #3F37C9",
+                  backgroundColor: "#f5f5f5",
+                },
+              }}
+            >
+              <ChatIcon style={{ height: 36 }} />
+            </Card>
+            <Typography
+              variant="caption"
+              sx={{
+                color: selectedTab === 4 ? "#3F37C9" : "inherit",
+                fontWeight: selectedTab === 4 ? "bold" : "normal",
+                textAlign: "center",
+              }}
+            >
+              AI
+            </Typography>
+          </Stack>
+        </Grid>
+      </Grid>
 
       {/* Activity Stats */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ p: 2, textAlign: "center" }}>
+        <Grid item xs={6} sm={6}>
+          <Card sx={{ p: 2, textAlign: "center", borderRadius: 4 }}>
             <Typography
               variant="h4"
               color="primary.main"
@@ -220,12 +427,11 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
             </Typography>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ p: 2, textAlign: "center" }}>
+        <Grid item xs={6} sm={6}>
+          <Card sx={{ p: 2, textAlign: "center", borderRadius: 4 }}>
             <Typography
               variant="h4"
-              color="success.main"
-              sx={{ fontWeight: "bold" }}
+              sx={{ fontWeight: "bold", color: "#37C9A4" }}
             >
               {activities.filter((a) => a.activityType === "consent").length}
             </Typography>
@@ -234,12 +440,11 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
             </Typography>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ p: 2, textAlign: "center" }}>
+        <Grid item xs={6} sm={6}>
+          <Card sx={{ p: 2, textAlign: "center", borderRadius: 4 }}>
             <Typography
               variant="h4"
-              color="warning.main"
-              sx={{ fontWeight: "bold" }}
+              sx={{ fontWeight: "bold", color: "#FDAA2B" }}
             >
               {activities.filter((a) => a.activityType === "incentive").length}
             </Typography>
@@ -248,12 +453,11 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
             </Typography>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ p: 2, textAlign: "center" }}>
+        <Grid item xs={6} sm={6}>
+          <Card sx={{ p: 2, textAlign: "center", borderRadius: 4 }}>
             <Typography
               variant="h4"
-              color="info.main"
-              sx={{ fontWeight: "bold" }}
+              sx={{ fontWeight: "bold", color: "#4DB8FF" }}
             >
               {activities.filter((a) => a.activityType === "ai").length}
             </Typography>
@@ -265,7 +469,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
       </Grid>
 
       {/* Activity List */}
-      <Card>
+      <Card sx={{ borderRadius: 4 }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2, color: "text.primary" }}>
             Recent Activities
@@ -283,43 +487,40 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
               {filteredActivities.map((activity, index) => (
                 <React.Fragment key={activity.activityId}>
                   <ListItem>
-                    <ListItemIcon>
-                      {getActivityIcon(activity.activityType)}
-                    </ListItemIcon>
                     <ListItemText
-                      primary={activity.activityDescription}
+                      primary={activity.activityDescription.replaceAll(
+                        "_",
+                        " ",
+                      )}
                       secondary={
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                            mt: 1,
-                          }}
-                        >
-                          <Chip
-                            label={activity.activityType}
-                            size="small"
-                            color={
-                              getActivityTypeColor(activity.activityType) as any
-                            }
-                          />
+                        <Stack>
                           <Typography variant="caption" color="text.secondary">
                             {new Date(activity.timestamp).toLocaleString()}
                           </Typography>
-                        </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            TX ID:{" "}
+                            <Link
+                              href={`https://hashscan.io/testnet/transaction/${activity.transactionId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {activity.transactionId.split("@")[1]}
+                            </Link>
+                          </Typography>
+                        </Stack>
                       }
                     />
                     <Box sx={{ textAlign: "right" }}>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: "block" }}
-                      >
-                        TX:{" "}
-                        {activity.transactionId.split("@")[1]?.substring(0, 8)}
-                        ...
-                      </Typography>
+                      <Chip
+                        label={activity.activityType.toUpperCase()}
+                        size="small"
+                        sx={{
+                          fontSize: 10,
+                          backgroundColor: `${getActivityTypeColor(activity.activityType)}50`,
+                          border: `1px solid ${getActivityTypeColor(activity.activityType)}`,
+                          color: `#0E1133`,
+                        }}
+                      />
                     </Box>
                   </ListItem>
                   {index < filteredActivities.length - 1 && (

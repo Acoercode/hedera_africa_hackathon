@@ -8,10 +8,7 @@ import {
   LedgerId,
   TokenAssociateTransaction,
   TokenId,
-  Transaction,
-  TransactionId,
   TransferTransaction,
-  Client,
 } from "@hashgraph/sdk";
 import { ContractFunctionParameterBuilder } from "../contractFunctionParameterBuilder";
 import { appConfig } from "../../../config";
@@ -21,8 +18,6 @@ import {
   HederaJsonRpcMethod,
   HederaSessionEvent,
   HederaChainId,
-  SignAndExecuteTransactionParams,
-  transactionToBase64String,
 } from "@hashgraph/hedera-wallet-connect";
 import EventEmitter from "events";
 
@@ -34,7 +29,6 @@ const refreshEvent = new EventEmitter();
 const walletConnectProjectId = "377d75bb6f86a2ffd427d032ff6ea7d3";
 const currentNetworkConfig = appConfig.networks.testnet;
 const hederaNetwork = currentNetworkConfig.network;
-const hederaClient = Client.forName(hederaNetwork);
 
 // Adapted from walletconnect dapp example:
 // https://github.com/hashgraph/hedera-wallet-connect/blob/main/src/examples/typescript/dapp/main.ts#L87C1-L101C4
