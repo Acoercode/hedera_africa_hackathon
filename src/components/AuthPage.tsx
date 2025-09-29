@@ -11,17 +11,16 @@ import {
   Divider,
   Button,
 } from "@mui/material";
-import {
-  Security as SecurityIcon,
-  Verified as VerifiedIcon,
-  CheckCircle as CheckIcon,
-  AccountBalanceWallet as WalletIcon,
-} from "@mui/icons-material";
+import { CheckCircle as CheckIcon } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { WalletSelectionDialog } from "./WalletSelectionDialog";
 import AccountLookupFlow from "./AccountLookupFlow";
 import { apiService } from "../services/api";
 import rdzLogo from "../assets/RDZ Health.png";
+import { ReactComponent as OwnDataIcon } from "../assets/own_data_icon.svg";
+import { ReactComponent as AIRespectsConsentIcon } from "../assets/auth_ai_icon.svg";
+import { ReactComponent as EarnTokensIcon } from "../assets/earn_icon.svg";
+import { ReactComponent as WalletIcon } from "../assets/wallet_icon.svg";
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
@@ -74,19 +73,26 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
 
   const features = [
     {
-      icon: <SecurityIcon sx={{ fontSize: 40, color: "primary.main" }} />,
-      title: "Secure & Private",
-      description: "Your data is encrypted and stored on the blockchain",
+      icon: <OwnDataIcon style={{ height: 40, color: "primary.main" }} />,
+      title: "Own Your Data",
+      description:
+        "Control your genomic data, enable or revoke anytime, with private-by-design access and a Hedera-verified audit log.",
     },
     {
-      icon: <VerifiedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
-      title: "You Own Your Data",
-      description: "Full control over your genomic data and consent",
+      icon: (
+        <AIRespectsConsentIcon
+          style={{ fontSize: 40, color: "primary.main" }}
+        />
+      ),
+      title: "AI That Respects Consent",
+      description:
+        "Genomic insights from your connected data, with FHIR translation and educational Q&A chat.",
     },
     {
-      icon: <WalletIcon sx={{ fontSize: 40, color: "primary.main" }} />,
+      icon: <EarnTokensIcon style={{ fontSize: 40, color: "primary.main" }} />,
       title: "Earn Tokens",
-      description: "Get rewarded with RDZ tokens for data sharing",
+      description:
+        "Get RDZ rewards for actions like syncing data, research participation and more.",
     },
   ];
 
@@ -139,7 +145,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             </Typography>
             <Typography variant="body1" color="text.secondary">
               Connect your Hedera wallet to access your genomic data, manage
-              consent, and earn rewards
+              consent, gain AI insights, and earn rewards
             </Typography>
           </Box>
 
@@ -181,7 +187,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                   mb: 3,
                   fontSize: "1.1rem",
                   fontWeight: "bold",
-                  borderRadius: 2,
+                  borderRadius: 10,
                   boxShadow: "0 4px 12px rgba(63, 55, 201, 0.3)",
                   "&:hover": {
                     boxShadow: "0 6px 16px rgba(63, 55, 201, 0.4)",
