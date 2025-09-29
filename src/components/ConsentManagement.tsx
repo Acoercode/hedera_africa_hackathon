@@ -26,6 +26,7 @@ import {
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { Consent } from "../services/api";
 import { HEDERA_CONFIG } from "../config/constants";
+import { useTransactionPolling } from "../hooks/useTransactionPolling";
 
 interface ConsentManagementProps {
   walletInterface: any;
@@ -48,6 +49,8 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
   const [processing, setProcessing] = useState<string | null>(null);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [selectedConsent, setSelectedConsent] = useState<any>(null);
+  const { addPendingTransaction, removePendingTransaction } =
+    useTransactionPolling();
 
   useEffect(() => {
     if (accountId) {
@@ -216,6 +219,11 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
   const handleConsentToggle = async (consent: Consent, newStatus: boolean) => {
     if (newStatus) {
+      // Set processing state immediately for enabling
+      setProcessing(consent.consentId);
+      setError(null);
+      setSuccess(null);
+
       if (consent.consentStatus === "revoked") {
         setSelectedConsent({
           ...consent,
@@ -237,14 +245,23 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
     if (!selectedConsent) return;
 
     try {
-      setProcessing(selectedConsent.consentId);
       setError(null);
       setSuccess(null);
       setShowConsentDialog(false);
 
       if (selectedConsent.consentType === "genomic_passport") {
+        // Add to pending transactions for mobile tracking
+        addPendingTransaction({
+          id: `passport-${Date.now()}`,
+          type: "passport",
+          accountId: accountId!,
+        });
+
         const passportResult = await signGenomicPassportTransaction();
         await logPassportActivity(selectedConsent, "created");
+
+        // Remove from pending transactions
+        removePendingTransaction(`passport-${Date.now()}`);
 
         const incentiveInfo = passportResult.incentive
           ? ` You earned ${passportResult.incentive.amount} RDZ incentive tokens!`
@@ -261,8 +278,18 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
         return;
       } else if (selectedConsent.consentType === "data_sync") {
+        // Add to pending transactions for mobile tracking
+        addPendingTransaction({
+          id: `data-sync-${Date.now()}`,
+          type: "data-sync",
+          accountId: accountId!,
+        });
+
         const dataSyncResult = await signDataSyncTransaction();
         await logConsentActivity(selectedConsent, "created");
+
+        // Remove from pending transactions
+        removePendingTransaction(`data-sync-${Date.now()}`);
 
         let incentiveInfo = "";
         if (dataSyncResult.data.incentive) {
@@ -285,8 +312,18 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         return;
       }
 
+      // Add to pending transactions for mobile tracking
+      addPendingTransaction({
+        id: `consent-${Date.now()}`,
+        type: "consent",
+        accountId: accountId!,
+      });
+
       const mintResult = await signTransactionWithWallet();
       await logConsentActivity(selectedConsent, "granted");
+
+      // Remove from pending transactions
+      removePendingTransaction(`consent-${Date.now()}`);
 
       const incentiveInfo = mintResult.incentive
         ? ` You earned ${mintResult.incentive.amount} RDZ incentive tokens!`
@@ -465,6 +502,10 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
   const disableConsent = async (consent: Consent) => {
     try {
+      setProcessing(consent.consentId);
+      setError(null);
+      setSuccess(null);
+
       const response = await fetch(
         `${process.env.REACT_APP_API_ROOT}/consent/${consent.consentId}/revoke`,
         {
@@ -493,7 +534,7 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       await loadConsents();
 
       setSuccess(
-        `Consent for "${predefinedConsentTypes.find((ct) => ct.consentType === consent.consentType)?.name || consent.consentType}" has been revoked successfully.`,
+        `NFT for "${predefinedConsentTypes.find((ct) => ct.consentType === consent.consentType)?.name || consent.consentType}" has been revoked successfully.`,
       );
 
       if (onConsentCreated) {
@@ -502,6 +543,8 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
     } catch (error) {
       console.error("Error revoking consent:", error);
       setError("Something went wrong, try again");
+    } finally {
+      setProcessing(null);
     }
   };
 
@@ -642,8 +685,18 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
 
       {/* Loading State */}
       {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-          <CircularProgress />
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            my: 4,
+          }}
+        >
+          <CircularProgress sx={{ mb: 2 }} />
+          <Typography variant="body2" color="text.secondary">
+            Loading consent data...
+          </Typography>
         </Box>
       )}
 
@@ -1010,7 +1063,9 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                       sx={{ mr: 1, color: "primary.main" }}
                     />
                     <Typography variant="body2" color="text.secondary">
-                      Processing...
+                      {consent.consentStatus === "revoked"
+                        ? "Enabling NFT..."
+                        : "Revoking NFT..."}
                     </Typography>
                   </Box>
                 )}
@@ -1023,7 +1078,10 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
       {/* Consent Dialog */}
       <Dialog
         open={showConsentDialog}
-        onClose={() => setShowConsentDialog(false)}
+        onClose={() => {
+          setShowConsentDialog(false);
+          setProcessing(null);
+        }}
         maxWidth="md"
         fullWidth
       >
@@ -1165,15 +1223,25 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
               )}
 
               {processing === selectedConsent?.consentId && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                      {selectedConsent?.consentType === "genomic_passport"
+                        ? "Creating RDZ Passport NFT..."
+                        : selectedConsent?.consentType === "data_sync"
+                          ? "Creating Data Sync Consent NFT..."
+                          : "Creating Consent NFT..."}
+                    </Typography>
+                  </Box>
                   <Typography variant="body2">
                     <strong>Please check your wallet!</strong> A transaction has
                     been sent to your connected wallet.
                     {selectedConsent?.consentType === "genomic_passport"
-                      ? `The transaction will show "RDZ Passport Creation" (Token ID: ${HEDERA_CONFIG.PASSPORT_NFT_TOKEN_ID}) for your genomic passport. Please approve to complete the passport creation process.`
+                      ? ` The transaction will show "RDZ Passport Creation" (Token ID: ${HEDERA_CONFIG.PASSPORT_NFT_TOKEN_ID}) for your genomic passport. Please approve to complete the passport creation process.`
                       : selectedConsent?.consentType === "data_sync"
-                        ? `The transaction will show "Data Sync Token Association" (Token ID: ${HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID}) for data synchronization. Please approve to complete the data sync consent process.`
-                        : `The transaction will show "RDZ Consent" (Token ID: ${HEDERA_CONFIG.RESEARCH_CONSENT_NFT_TOKEN_ID}) for the consent NFT. Please approve to complete the consent process.`}
+                        ? ` The transaction will show "Data Sync Token Association" (Token ID: ${HEDERA_CONFIG.DATA_SYNC_NFT_TOKEN_ID}) for data synchronization. Please approve to complete the data sync consent process.`
+                        : ` The transaction will show "RDZ Consent" (Token ID: ${HEDERA_CONFIG.RESEARCH_CONSENT_NFT_TOKEN_ID}) for the consent NFT. Please approve to complete the consent process.`}
                   </Typography>
                 </Alert>
               )}
@@ -1182,7 +1250,10 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => setShowConsentDialog(false)}
+            onClick={() => {
+              setShowConsentDialog(false);
+              setProcessing(null);
+            }}
             disabled={processing === selectedConsent?.consentId}
           >
             Cancel
@@ -1201,9 +1272,9 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
           >
             {processing === selectedConsent?.consentId
               ? selectedConsent?.consentType === "genomic_passport"
-                ? "Creating RDZ Passport..."
+                ? "Creating RDZ Passport NFT..."
                 : selectedConsent?.consentType === "data_sync"
-                  ? "Creating Data Sync Consent..."
+                  ? "Creating Data Sync Consent NFT..."
                   : "Creating Consent NFT..."
               : selectedConsent?.consentType === "genomic_passport"
                 ? "Create RDZ Passport NFT"

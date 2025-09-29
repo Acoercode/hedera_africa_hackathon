@@ -22,10 +22,16 @@ const PORT = process.env.PORT || 5000;
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - more lenient for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // More lenient in development
+  message: {
+    error: 'Too many requests, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 app.use(limiter);
 

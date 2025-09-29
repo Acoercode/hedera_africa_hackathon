@@ -107,18 +107,34 @@ export const UserProvider: React.FC<UserProviderProps> = ({
       return;
     }
 
+    // Check if API root is configured
+    if (!process.env.REACT_APP_API_ROOT) {
+      console.error("REACT_APP_API_ROOT is not configured");
+      setError("API configuration error");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
+      console.log("Fetching user data for account:", accountId);
+      console.log("API Root:", process.env.REACT_APP_API_ROOT);
+
       // First, fetch user data
       const userResponse = await fetch(
         `${process.env.REACT_APP_API_ROOT}/users/by-hedera-account/${accountId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       if (!userResponse.ok) {
         throw new Error(
-          `Failed to fetch user data: ${userResponse.statusText}`,
+          `Failed to fetch user data: ${userResponse.status} ${userResponse.statusText}`,
         );
       }
 
@@ -162,9 +178,27 @@ export const UserProvider: React.FC<UserProviderProps> = ({
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch user data",
-      );
+
+      let errorMessage = "Failed to fetch user data";
+      if (err instanceof Error) {
+        if (
+          err.message.includes("429") ||
+          err.message.includes("Too Many Requests")
+        ) {
+          errorMessage =
+            "Rate limit exceeded. Please wait a moment and try again.";
+        } else if (err.message.includes("CORS")) {
+          errorMessage =
+            "CORS error: Check if the backend server is running and accessible";
+        } else if (err.message.includes("Failed to fetch")) {
+          errorMessage =
+            "Network error: Unable to connect to the backend server";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
       setUserState(null);
       setGenomicData(null);
     } finally {
@@ -172,8 +206,28 @@ export const UserProvider: React.FC<UserProviderProps> = ({
     }
   };
 
-  const refetchUser = async () => {
-    await fetchUserData();
+  const refetchUser = async (retryCount = 0) => {
+    try {
+      await fetchUserData();
+    } catch (error) {
+      // If it's a rate limit error and we haven't retried too many times, wait and retry
+      if (
+        error instanceof Error &&
+        (error.message.includes("429") ||
+          error.message.includes("Too Many Requests")) &&
+        retryCount < 3
+      ) {
+        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+        console.log(
+          `Rate limit hit, retrying in ${delay}ms (attempt ${retryCount + 1})`,
+        );
+        setTimeout(() => {
+          refetchUser(retryCount + 1);
+        }, delay);
+      } else {
+        throw error; // Re-throw if not a rate limit error or max retries reached
+      }
+    }
   };
 
   const setUser = (userData: UserResponse | null) => {
@@ -187,7 +241,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({
   };
 
   useEffect(() => {
-    fetchUserData();
+    // Debounce the fetch to prevent too many calls
+    const timeoutId = setTimeout(() => {
+      fetchUserData();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId]);
 

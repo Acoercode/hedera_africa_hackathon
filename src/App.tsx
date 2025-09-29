@@ -6,18 +6,41 @@ import RdzHealthApp from "./components/RdzHealthApp";
 import AuthPage from "./components/AuthPage";
 import { theme } from "./theme";
 import { WalletConnectContext } from "./contexts/WalletConnectContext";
-import { MetamaskContext } from "./contexts/MetamaskContext";
 import { UserProvider } from "./contexts/UserContext";
+import { useAppState } from "./hooks/useAppState";
+import { useWalletStateRefresh } from "./hooks/useWalletStateRefresh";
 import "./App.css";
+
+// Component that handles app state management inside UserProvider context
+const AuthenticatedApp: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
+  const { refreshWalletState } = useWalletStateRefresh();
+
+  // Handle app state changes for mobile
+  useAppState({
+    onAppActive: () => {
+      console.log("App became active - refreshing wallet state");
+      refreshWalletState();
+    },
+    onAppInactive: () => {
+      console.log("App became inactive");
+    },
+    onVisibilityChange: (isVisible) => {
+      if (isVisible) {
+        console.log("App became visible - refreshing wallet state");
+        refreshWalletState();
+      }
+    },
+  });
+
+  return <RdzHealthApp onLogout={onLogout} />;
+};
 
 const AppContent: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const walletConnectContext = useContext(WalletConnectContext);
-  const metamaskContext = useContext(MetamaskContext);
 
-  // Get the current account ID from either wallet context
-  const currentAccountId =
-    walletConnectContext.accountId || metamaskContext.metamaskAccountAddress;
+  // Get the current account ID from WalletConnect (HashPack)
+  const currentAccountId = walletConnectContext.accountId;
 
   const handleAuthSuccess = () => {
     setIsAuthenticated(true);
@@ -26,8 +49,6 @@ const AppContent: React.FC = () => {
   const handleLogout = () => {
     walletConnectContext.setAccountId("");
     walletConnectContext.setIsConnected(false);
-    metamaskContext.setMetamaskAccountAddress("");
-
     setIsAuthenticated(false);
   };
 
@@ -36,7 +57,7 @@ const AppContent: React.FC = () => {
       <CssBaseline />
       {isAuthenticated ? (
         <UserProvider accountId={currentAccountId}>
-          <RdzHealthApp onLogout={handleLogout} />
+          <AuthenticatedApp onLogout={handleLogout} />
         </UserProvider>
       ) : (
         <AuthPage onAuthSuccess={handleAuthSuccess} />
