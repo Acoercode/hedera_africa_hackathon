@@ -11,8 +11,15 @@ class IncentiveService {
       research_consent: 150, // 150 tokens for research consent
       passport_creation: 200, // 200 tokens for passport creation
       'AI chat_started': 10, // 10 tokens for starting AI conversation
+      'AI enhanced_chat_started': 25, // 25 tokens for enhanced chat with research data
       'AI fhir_translation_completed': 50, // 50 tokens for FHIR translation
-      'AI genomic_insights_completed': 25 // 25 tokens for genomic insights
+      'AI genomic_insights_completed': 25, // 25 tokens for genomic insights
+      'AI clinvar_insights_completed': 75, // 75 tokens for ClinVar-enhanced insights
+      'AI clinvar_variant_lookup': 0, // 0 tokens for simple variant lookups
+      'AI pathogenic_variant_identified': 100, // 100 tokens for finding pathogenic variants
+      'AI disease_association_found': 50, // 50 tokens for disease associations
+      'AI drug_response_prediction': 60, // 60 tokens for drug response insights
+      'AI family_planning_insights': 40 // 40 tokens for family planning recommendations
     };
   }
 

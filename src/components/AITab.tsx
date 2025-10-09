@@ -28,6 +28,7 @@ import {
 import { useUser } from "../contexts/UserContext";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { ReactComponent as ChatIcon } from "../assets/ai_icon_color.svg";
+import { ClinicalTrials, DetailedEvidence } from "./ClinVarComponents";
 import { ReactComponent as FHIRIcon } from "../assets/fhir_icon.svg";
 import { ReactComponent as InsightsIcon } from "../assets/trends_icon.svg";
 
@@ -46,7 +47,19 @@ interface FHIRData {
   summary?: string;
 }
 
-const AITab: React.FC = () => {
+const AITab: React.FC<{
+  clinvarResults?: any[];
+  clinvarSummary?: any;
+  africanPopulationData?: any[];
+  onGenerateClinVarInsights?: () => void;
+  clinvarLoading?: boolean;
+}> = ({
+  clinvarResults = [],
+  clinvarSummary = null,
+  africanPopulationData = [],
+  onGenerateClinVarInsights,
+  clinvarLoading = false,
+}) => {
   const { genomicData } = useUser();
   const { accountId } = useWalletInterface();
   const [activeTab, setActiveTab] = useState(0);
@@ -99,7 +112,7 @@ const AITab: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_ROOT}/ai/chat`,
+        `${process.env.REACT_APP_API_ROOT}/ai/chat-enhanced`,
         {
           method: "POST",
           headers: {
@@ -132,7 +145,7 @@ const AITab: React.FC = () => {
         if (data.incentive) {
           if (data.incentive.success) {
             setSuccess(
-              `You earned ${data.incentive.amount} RDZ incentive tokens for starting a conversation!`,
+              `You earned ${data.incentive.amount} RDZ incentive tokens for starting a research-backed conversation!`,
             );
           } else if (data.incentive.requiresAssociation) {
             setSuccess(
@@ -215,7 +228,7 @@ const AITab: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_ROOT}/ai/generate-insights`,
+        `${process.env.REACT_APP_API_ROOT}/ai/clinvar-insights`,
         {
           method: "POST",
           headers: {
@@ -234,7 +247,8 @@ const AITab: React.FC = () => {
         setInsights(data.insights);
 
         // Show success message with incentive info
-        let successMessage = "Genomic insights generated successfully";
+        let successMessage =
+          "Research-enhanced genomic insights generated successfully";
         if (data.incentive) {
           if (data.incentive.success) {
             successMessage += ` You earned ${data.incentive.amount} RDZ incentive tokens!`;
@@ -274,6 +288,16 @@ const AITab: React.FC = () => {
 
   const renderChatTab = () => (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Enhanced Chat Info */}
+      <Alert severity="info" sx={{ mb: 2 }}>
+        <Typography variant="body2">
+          <strong>Research-Enhanced AI Assistant:</strong> This chat uses
+          ClinVar clinical evidence, latest PubMed research, and African
+          population data to provide evidence-based responses. Earn 25 RDZ
+          tokens per conversation!
+        </Typography>
+      </Alert>
+
       {/* Chat Messages */}
       <Box
         sx={{
@@ -309,7 +333,9 @@ const AITab: React.FC = () => {
                 }}
               >
                 Ask questions about your genetic findings, health implications,
-                or any concerns you may have.
+                or any concerns you may have. I have access to the latest
+                research from PubMed and ClinVar clinical evidence to provide
+                evidence-based answers.
               </Typography>
             </Box>
           </Box>
@@ -391,7 +417,7 @@ const AITab: React.FC = () => {
           fullWidth
           multiline
           maxRows={3}
-          placeholder="Ask about your genomic data..."
+          placeholder="Ask about your genomic data with research-backed insights..."
           value={currentQuestion}
           onChange={(e) => setCurrentQuestion(e.target.value)}
           onKeyPress={(e) => {
@@ -582,12 +608,13 @@ const AITab: React.FC = () => {
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 1 }}>
-            Generate Comprehensive Insights
+            Generate Research-Enhanced Insights
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            AI will analyze your genomic data and provide insights on genetic
-            findings, health risks, lifestyle recommendations, and questions for
-            your healthcare provider.
+            AI will analyze your genomic data using ClinVar clinical evidence,
+            latest PubMed research, and African population data to provide
+            comprehensive insights on genetic findings, health risks, treatment
+            options, and questions for your healthcare provider.
           </Typography>
 
           <Button
@@ -602,7 +629,9 @@ const AITab: React.FC = () => {
               )
             }
           >
-            {insightsLoading ? "Generating..." : "Generate Insights"}
+            {insightsLoading
+              ? "Analyzing with Research Data..."
+              : "Generate Research-Enhanced Insights"}
           </Button>
 
           {!genomicData && (
@@ -638,6 +667,18 @@ const AITab: React.FC = () => {
             </Typography>
           </CardContent>
         </Card>
+      )}
+
+      {/* Clinical Trials Section */}
+      {clinvarSummary && clinvarSummary.diseaseAssociations && (
+        <ClinicalTrials
+          diseaseAssociations={clinvarSummary.diseaseAssociations}
+        />
+      )}
+
+      {/* Detailed Evidence Section */}
+      {clinvarResults && clinvarResults.length > 0 && (
+        <DetailedEvidence clinvarResults={clinvarResults} />
       )}
     </Box>
   );

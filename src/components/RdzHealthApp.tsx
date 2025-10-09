@@ -45,6 +45,8 @@ import { ReactComponent as FamilyIcon } from "../assets/family_icon.svg";
 import { ReactComponent as BenefitsIcon } from "../assets/benefits_icon.svg";
 import { ReactComponent as IHopeIdIcon } from "../assets/id_icon.svg";
 import { ReactComponent as StarIcon } from "../assets/star_icon.svg";
+import { AssessmentNotification } from "./ClinVarComponents";
+import { AssessmentPage } from "./AssessmentPage";
 
 interface RdzHealthAppProps {
   onLogout: () => void;
@@ -64,6 +66,14 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
     refetchUser,
   } = useUser();
 
+  // ClinVar state
+  const [clinvarSummary, setClinvarSummary] = useState<any>(null);
+  const [clinvarResults, setClinvarResults] = useState<any[]>([]);
+  const [africanPopulationData, setAfricanPopulationData] = useState<any[]>([]);
+  const [researchArticles, setResearchArticles] = useState<any[]>([]);
+  const [clinvarLoading, setClinvarLoading] = useState(false);
+  const [showAssessmentPage, setShowAssessmentPage] = useState(false);
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
@@ -80,6 +90,40 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
   const handleConsentCreated = async () => {
     if (refetchUser) {
       await refetchUser();
+    }
+  };
+
+  const generateClinVarInsights = async () => {
+    if (!genomicData || !accountId) return;
+
+    setClinvarLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_ROOT}/ai/clinvar-insights`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            genomicData: genomicData,
+            accountId: accountId,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setClinvarResults(data.clinvarResults || []);
+        setClinvarSummary(data.insightsSummary || null);
+        setAfricanPopulationData(data.africanPopulationData || []);
+        setResearchArticles(data.researchArticles || []);
+      }
+    } catch (error) {
+      console.error("Error generating ClinVar insights:", error);
+    } finally {
+      setClinvarLoading(false);
     }
   };
 
@@ -106,6 +150,21 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
   };
 
   const renderMainContent = () => {
+    // Show Assessment Page if requested
+    if (showAssessmentPage) {
+      return (
+        <AssessmentPage
+          clinvarSummary={clinvarSummary}
+          clinvarResults={clinvarResults}
+          africanPopulationData={africanPopulationData}
+          researchArticles={researchArticles}
+          onGenerateClinVarInsights={generateClinVarInsights}
+          clinvarLoading={clinvarLoading}
+          onBack={() => setShowAssessmentPage(false)}
+        />
+      );
+    }
+
     switch (currentTab) {
       case 0: // My Profile
         return (
@@ -121,6 +180,11 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
               setAutoOpenDataSyncConsent(true);
               setCurrentTab(1); // Switch to Data tab
             }}
+            clinvarSummary={clinvarSummary}
+            clinvarResults={clinvarResults}
+            onGenerateClinVarInsights={generateClinVarInsights}
+            clinvarLoading={clinvarLoading}
+            onViewAssessment={() => setShowAssessmentPage(true)}
           />
         );
       case 1: // Data Sharing
@@ -136,12 +200,30 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
               setCurrentTab(1); // Switch to Data tab
             }}
             onConsentCreated={handleConsentCreated}
+            clinvarResults={clinvarResults}
+            africanPopulationData={africanPopulationData}
+            onGenerateClinVarInsights={generateClinVarInsights}
+            clinvarLoading={clinvarLoading}
           />
         );
       case 2: // Activity
-        return <ActivityTab walletInterface={walletInterface} />;
+        return (
+          <ActivityTab
+            walletInterface={walletInterface}
+            clinvarResults={clinvarResults}
+            clinvarSummary={clinvarSummary}
+          />
+        );
       case 3: // AI
-        return <AITab />;
+        return (
+          <AITab
+            clinvarResults={clinvarResults}
+            clinvarSummary={clinvarSummary}
+            africanPopulationData={africanPopulationData}
+            onGenerateClinVarInsights={generateClinVarInsights}
+            clinvarLoading={clinvarLoading}
+          />
+        );
       case 4: // Wallet
         return <WalletTab />;
       case 5: // Data Sync
@@ -321,6 +403,11 @@ const ProfileTab: React.FC<{
   userLoading: boolean;
   userError: string | null;
   onRequestDataSyncConsent: () => void;
+  clinvarSummary?: any;
+  clinvarResults?: any[];
+  onGenerateClinVarInsights?: () => void;
+  clinvarLoading?: boolean;
+  onViewAssessment?: () => void;
 }> = ({
   walletInterface,
   currentProfileCard,
@@ -330,6 +417,11 @@ const ProfileTab: React.FC<{
   userLoading,
   userError,
   onRequestDataSyncConsent,
+  clinvarSummary = null,
+  clinvarResults = [],
+  onGenerateClinVarInsights,
+  clinvarLoading = false,
+  onViewAssessment,
 }) => {
   if (userLoading) {
     return (
@@ -406,6 +498,19 @@ const ProfileTab: React.FC<{
       >
         My Health Profile
       </Typography>
+
+      {/* ClinVar Risk Assessment - Show on Patient Overview */}
+      {currentProfileCard === 0 && genomicData && (
+        <Box sx={{ mt: 3 }}>
+          <AssessmentNotification
+            summary={clinvarSummary}
+            onViewAssessment={onViewAssessment}
+            onGenerateInsights={onGenerateClinVarInsights}
+            loading={clinvarLoading}
+            existingDiagnosis={genomicData?.condition}
+          />
+        </Box>
+      )}
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={4}>
@@ -919,6 +1024,7 @@ const ProfileTab: React.FC<{
             </Grid>
           </Grid>
         )}
+
         {currentProfileCard === 1 && (
           <Grid container spacing={2}>
             {/* Family Information Card */}
@@ -1475,6 +1581,10 @@ const DataSharingTab: React.FC<{
   onDataSyncConsentOpened?: () => void;
   onRequestDataSyncConsent: () => void;
   onConsentCreated?: () => void;
+  clinvarResults?: any[];
+  africanPopulationData?: any[];
+  onGenerateClinVarInsights?: () => void;
+  clinvarLoading?: boolean;
 }> = ({
   walletInterface,
   genomicData,
@@ -1482,6 +1592,10 @@ const DataSharingTab: React.FC<{
   onDataSyncConsentOpened,
   onRequestDataSyncConsent,
   onConsentCreated,
+  clinvarResults = [],
+  africanPopulationData = [],
+  onGenerateClinVarInsights,
+  clinvarLoading = false,
 }) => {
   // Auto-open data sync consent dialog if requested
   React.useEffect(() => {

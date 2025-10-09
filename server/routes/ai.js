@@ -3,6 +3,7 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { TopicMessageSubmitTransaction } = require('@hashgraph/sdk');
 const chatgptService = require('../services/chatgptService');
+const clinvarService = require('../services/clinvarService');
 const hederaService = require('../services/hederaService');
 const Activity = require('../models/Activity');
 
@@ -194,6 +195,51 @@ router.post('/chat', async (req, res) => {
   }
 });
 
+// POST /api/ai/chat-enhanced - Enhanced chat with research data
+router.post('/chat-enhanced', async (req, res) => {
+  try {
+    const { question, genomicData, chatHistory = [], accountId } = req.body;
+
+    if (!question) {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+
+    if (!accountId) {
+      return res.status(400).json({ error: 'Account ID is required for activity tracking' });
+    }
+
+    console.log('🧬 Starting enhanced chat request for account:', accountId);
+
+    const result = await chatgptService.chatWithResearchData(question, genomicData, chatHistory);
+
+    if (result.success) {
+      // Log enhanced AI chat activity and award higher incentive (25 RDZ tokens)
+      const { incentiveResult } = await logAIActivity(
+        accountId,
+        'enhanced_chat_started',
+        `Started enhanced AI conversation with research data: "${question.substring(0, 100)}${question.length > 100 ? '...' : ''}"`,
+        25
+      );
+
+      res.json({
+        success: true,
+        response: result.response,
+        usage: result.usage,
+        researchData: result.researchData,
+        incentive: incentiveResult
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error in enhanced AI chat route:', error);
+    res.status(500).json({ error: 'Failed to process enhanced chat request' });
+  }
+});
+
 // POST /api/ai/generate-insights - Generate comprehensive genomic insights
 router.post('/generate-insights', async (req, res) => {
   try {
@@ -233,6 +279,138 @@ router.post('/generate-insights', async (req, res) => {
   } catch (error) {
     console.error('Error in insights generation route:', error);
     res.status(500).json({ error: 'Failed to generate insights' });
+  }
+});
+
+// POST /api/ai/clinvar-insights - Generate ClinVar-enhanced insights
+router.post('/clinvar-insights', async (req, res) => {
+  try {
+    const { genomicData, accountId } = req.body;
+
+    if (!genomicData) {
+      return res.status(400).json({ error: 'Genomic data is required' });
+    }
+
+    if (!accountId) {
+      return res.status(400).json({ error: 'Account ID is required for activity tracking' });
+    }
+
+    console.log('🧬 Starting ClinVar-enhanced insights generation for account:', accountId);
+
+    const result = await chatgptService.generateClinVarInsights(genomicData);
+
+    if (result.success) {
+      // Log ClinVar insights activity and award higher incentive (75 RDZ tokens)
+      const { incentiveResult } = await logAIActivity(
+        accountId,
+        'clinvar_insights_completed',
+        `Successfully generated ClinVar-enhanced insights with ${result.clinvarResults.length} variants analyzed`,
+        75
+      );
+
+            res.json({
+              success: true,
+              insights: result.insights,
+              clinvarResults: result.clinvarResults,
+              insightsSummary: result.insightsSummary,
+              africanPopulationData: result.africanPopulationData,
+              researchArticles: result.researchArticles || [],
+              usage: result.usage,
+              incentive: incentiveResult
+            });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        clinvarResults: result.clinvarResults || [],
+        insightsSummary: result.insightsSummary || null
+      });
+    }
+  } catch (error) {
+    console.error('Error in ClinVar insights generation route:', error);
+    res.status(500).json({ error: 'Failed to generate ClinVar-enhanced insights' });
+  }
+});
+
+// GET /api/ai/clinvar/variant/:variantId - Get specific ClinVar variant information
+router.get('/clinvar/variant/:variantId', async (req, res) => {
+  try {
+    const { variantId } = req.params;
+    const { accountId } = req.query;
+
+    if (!variantId) {
+      return res.status(400).json({ error: 'Variant ID is required' });
+    }
+
+    console.log(`🔍 Fetching ClinVar variant: ${variantId}`);
+
+    // Search for the specific variant
+    const variants = await clinvarService.searchVariants(variantId, 1);
+    
+    if (variants.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Variant not found in ClinVar database' 
+      });
+    }
+
+    const variant = variants[0];
+
+    // Log variant lookup activity (no incentive for simple lookups)
+    if (accountId) {
+      await logAIActivity(
+        accountId,
+        'clinvar_variant_lookup',
+        `Looked up ClinVar variant: ${variantId}`,
+        0
+      );
+    }
+
+    res.json({
+      success: true,
+      variant: variant
+    });
+
+  } catch (error) {
+    console.error('Error in ClinVar variant lookup route:', error);
+    res.status(500).json({ error: 'Failed to fetch ClinVar variant information' });
+  }
+});
+
+// GET /api/ai/clinvar/search - Search ClinVar database
+router.get('/clinvar/search', async (req, res) => {
+  try {
+    const { query, maxResults = 10 } = req.query;
+    const { accountId } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    console.log(`🔍 Searching ClinVar database for: ${query}`);
+
+    const variants = await clinvarService.searchVariants(query, parseInt(maxResults));
+
+    // Log search activity (no incentive for searches)
+    if (accountId) {
+      await logAIActivity(
+        accountId,
+        'clinvar_search',
+        `Searched ClinVar database for: ${query}`,
+        0
+      );
+    }
+
+    res.json({
+      success: true,
+      query: query,
+      results: variants,
+      totalResults: variants.length
+    });
+
+  } catch (error) {
+    console.error('Error in ClinVar search route:', error);
+    res.status(500).json({ error: 'Failed to search ClinVar database' });
   }
 });
 

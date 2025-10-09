@@ -4,14 +4,12 @@ const userSchema = new mongoose.Schema({
   iHopeId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   hederaAccountId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   firstName: {
     type: String,

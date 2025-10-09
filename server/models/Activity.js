@@ -6,22 +6,19 @@ const activitySchema = new mongoose.Schema({
   activityId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   
   // User reference
   userId: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   
   // Activity details
   activityName: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   activityDescription: {
     type: String,
@@ -30,15 +27,13 @@ const activitySchema = new mongoose.Schema({
   activityType: {
     type: String,
     enum: ['consent', 'data', 'reward', 'incentive', 'security', 'ai', 'sharing'],
-    required: true,
-    index: true
+    required: true
   },
   
   // Hedera integration
   transactionId: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   
   // Encrypted metadata (for any personal data)
@@ -54,8 +49,7 @@ const activitySchema = new mongoose.Schema({
   // Timestamps
   timestamp: {
     type: Date,
-    default: Date.now,
-    index: true
+    default: Date.now
   },
   createdAt: {
     type: Date,
@@ -71,10 +65,7 @@ const activitySchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for performance
-activitySchema.index({ userId: 1, timestamp: -1 });
-activitySchema.index({ activityType: 1, timestamp: -1 });
-activitySchema.index({ transactionId: 1 });
+// Indexes removed to prevent automatic creation
 
 // Pre-save middleware
 activitySchema.pre('save', function(next) {

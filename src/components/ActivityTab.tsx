@@ -38,9 +38,15 @@ interface Activity {
 
 interface ActivityTabProps {
   walletInterface: any;
+  clinvarResults?: any[];
+  clinvarSummary?: any;
 }
 
-const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
+const ActivityTab: React.FC<ActivityTabProps> = ({
+  walletInterface,
+  clinvarResults = [],
+  clinvarSummary = null,
+}) => {
   const { accountId } = useWalletInterface();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
@@ -471,6 +477,84 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ walletInterface }) => {
       {/* Activity List */}
       <Card sx={{ borderRadius: 4 }}>
         <CardContent>
+          {/* Clinical Evidence Tracking Section */}
+          {clinvarResults.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: "text.primary" }}>
+                Clinical Evidence Tracking
+              </Typography>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>Clinical Analysis Completed:</strong>{" "}
+                  {clinvarResults.length} genetic variants analyzed with ClinVar
+                  database
+                </Typography>
+              </Alert>
+              <Grid container spacing={2}>
+                <Grid item xs={6} sm={3}>
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      p: 1,
+                      backgroundColor: "#f5f5f5",
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="h6" color="error">
+                      {clinvarSummary?.pathogenicVariants || 0}
+                    </Typography>
+                    <Typography variant="caption">Pathogenic</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      p: 1,
+                      backgroundColor: "#f5f5f5",
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="h6" color="warning.main">
+                      {clinvarSummary?.likelyPathogenicVariants || 0}
+                    </Typography>
+                    <Typography variant="caption">Likely Pathogenic</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      p: 1,
+                      backgroundColor: "#f5f5f5",
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="h6" color="info.main">
+                      {clinvarSummary?.vusVariants || 0}
+                    </Typography>
+                    <Typography variant="caption">VUS</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      p: 1,
+                      backgroundColor: "#f5f5f5",
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="h6" color="success.main">
+                      {clinvarSummary?.expertPanelReviewed || 0}
+                    </Typography>
+                    <Typography variant="caption">Expert Reviewed</Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+
           <Typography variant="h6" sx={{ mb: 2, color: "text.primary" }}>
             Recent Activities
           </Typography>
