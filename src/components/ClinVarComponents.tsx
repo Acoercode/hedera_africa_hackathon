@@ -439,7 +439,7 @@ export const RiskAssessmentSummary: React.FC<{
   );
 };
 
-// Simple Assessment Notification Component
+// Compact Assessment Notification Component
 export const AssessmentNotification: React.FC<{
   summary: ClinVarInsightsSummary | null;
   onViewAssessment?: () => void;
@@ -453,99 +453,186 @@ export const AssessmentNotification: React.FC<{
   loading = false,
   existingDiagnosis,
 }) => {
+  // If no assessment exists, show a compact informative panel with Get Started button
+  if (!summary) {
+    return (
+      <Paper
+        sx={{
+          p: 1.5,
+          mb: 2,
+          borderRadius: 2,
+          border: "1px solid #e0e0e0",
+          backgroundColor: "#f8f9fa",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Box
+            sx={{
+              p: 0.75,
+              borderRadius: "50%",
+              backgroundColor: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: 1,
+            }}
+          >
+            <ScienceIcon sx={{ color: "#2E7D32", fontSize: 20 }} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: "bold",
+                fontSize: "0.9rem",
+                color: "#2D3748",
+                mb: 0.25,
+              }}
+            >
+              Genetic Assessment Available
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.75rem",
+              }}
+            >
+              Get your personalized health report
+            </Typography>
+          </Box>
+          {onGenerateInsights ? (
+            <Button
+              variant="contained"
+              size="small"
+              onClick={onGenerateInsights}
+              disabled={loading}
+              startIcon={
+                loading ? <CircularProgress size={16} /> : <ScienceIcon />
+              }
+              sx={{
+                backgroundColor: "#2E7D32",
+                borderRadius: 2,
+                px: 2,
+                py: 0.5,
+                fontSize: "0.8rem",
+                fontWeight: "bold",
+                textTransform: "none",
+                minWidth: "auto",
+                "&:hover": {
+                  backgroundColor: "#1B5E20",
+                },
+              }}
+            >
+              {loading ? "Analyzing..." : "Analyze"}
+            </Button>
+          ) : (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onViewAssessment}
+              startIcon={<ScienceIcon />}
+              sx={{
+                borderColor: "#2E7D32",
+                color: "#2E7D32",
+                borderRadius: 2,
+                px: 2,
+                py: 0.5,
+                fontSize: "0.8rem",
+                fontWeight: "bold",
+                textTransform: "none",
+                minWidth: "auto",
+                "&:hover": {
+                  borderColor: "#1B5E20",
+                  backgroundColor: "#f1f8e9",
+                },
+              }}
+            >
+              View
+            </Button>
+          )}
+        </Box>
+      </Paper>
+    );
+  }
+
+  // If assessment exists, show a compact notification
   const getRiskLevel = () => {
-    if (!summary) return "UNKNOWN";
     if (summary.pathogenicVariants > 0) return "HIGH";
     if (summary.likelyPathogenicVariants > 0) return "MODERATE";
     if (summary.vusVariants > 0) return "UNCERTAIN";
     return "LOW";
   };
 
-  const getRiskInfo = (level: string) => {
-    const hasExistingDiagnosis =
-      existingDiagnosis && summary?.hasMatchingDiagnosis;
+  const riskLevel = getRiskLevel();
+  const hasExistingDiagnosis =
+    existingDiagnosis && summary?.hasMatchingDiagnosis;
+  const highPriorityCount =
+    summary.pathogenicVariants + summary.likelyPathogenicVariants;
 
+  const getRiskInfo = (level: string) => {
     switch (level) {
       case "HIGH":
         return {
-          color: "error",
-          icon: <WarningIcon />,
-          title: hasExistingDiagnosis
-            ? "Genetic Confirmation Found"
-            : "High Risk Detected",
-          description: hasExistingDiagnosis
-            ? "Genetic variants confirm your existing diagnosis"
-            : "Important genetic findings require attention",
+          color: hasExistingDiagnosis ? "#4caf50" : "#f44336",
           bgColor: hasExistingDiagnosis ? "#e8f5e8" : "#ffebee",
-          borderColor: hasExistingDiagnosis ? "#4caf50" : "#f44336",
+          icon: hasExistingDiagnosis ? <CheckCircleIcon /> : <WarningIcon />,
+          title: hasExistingDiagnosis ? "Genetic Confirmation" : "High Risk",
         };
       case "MODERATE":
         return {
-          color: "warning",
-          icon: <InfoIcon />,
-          title: hasExistingDiagnosis
-            ? "Additional Variants Found"
-            : "Moderate Risk Found",
-          description: hasExistingDiagnosis
-            ? "Additional genetic variants may affect your condition"
-            : "Some genetic concerns identified",
+          color: "#ff9800",
           bgColor: "#fff3e0",
-          borderColor: "#ff9800",
+          icon: <InfoIcon />,
+          title: "Moderate Risk",
         };
       case "UNCERTAIN":
         return {
-          color: "info",
+          color: "#2196f3",
+          bgColor: "#e3f2fd",
           icon: <HelpIcon />,
           title: "Uncertain Results",
-          description: "More research needed for some findings",
-          bgColor: "#e3f2fd",
-          borderColor: "#2196f3",
         };
       case "LOW":
         return {
-          color: "success",
+          color: "#4caf50",
+          bgColor: "#e8f5e8",
           icon: <CheckCircleIcon />,
           title: "Low Risk",
-          description: "No major genetic concerns found",
-          bgColor: "#e8f5e8",
-          borderColor: "#4caf50",
         };
       default:
         return {
-          color: "default",
-          icon: <ScienceIcon />,
-          title: "Genetic Assessment Available",
-          description: "Get your personalized health report",
+          color: "#9e9e9e",
           bgColor: "#f5f5f5",
-          borderColor: "#9e9e9e",
+          icon: <ScienceIcon />,
+          title: "Assessment Complete",
         };
     }
   };
 
-  const riskLevel = getRiskLevel();
   const riskInfo = getRiskInfo(riskLevel);
 
   return (
     <Paper
       sx={{
-        p: 2,
+        p: 1.5,
         mb: 2,
         borderRadius: 2,
-        border: `2px solid ${riskInfo.borderColor}`,
+        border: `1px solid ${riskInfo.color}`,
         backgroundColor: riskInfo.bgColor,
         cursor: "pointer",
         transition: "all 0.2s ease-in-out",
         "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: 3,
+          transform: "translateY(-1px)",
+          boxShadow: 2,
         },
       }}
       onClick={onViewAssessment}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <Box
           sx={{
-            p: 1,
+            p: 0.75,
             borderRadius: "50%",
             backgroundColor: "white",
             display: "flex",
@@ -556,75 +643,37 @@ export const AssessmentNotification: React.FC<{
         >
           {riskInfo.icon}
         </Box>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: "bold", mb: 0.5 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: "bold",
+              fontSize: "0.9rem",
+              color: riskInfo.color,
+            }}
+          >
             {riskInfo.title}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {riskInfo.description}
-          </Typography>
-          {summary && (
-            <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-                {summary.totalVariants} variants analyzed
-              </Typography>
-              <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-                {(summary.pathogenicVariants || 0) +
-                  (summary.likelyPathogenicVariants || 0)}{" "}
-                important findings
-              </Typography>
-            </Box>
-          )}
-        </Box>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 1,
-          }}
-        >
-          {onGenerateInsights && !summary && (
-            <Button
-              variant="contained"
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onGenerateInsights();
-              }}
-              disabled={loading}
-              startIcon={
-                loading ? <CircularProgress size={16} /> : <ScienceIcon />
-              }
-              sx={{
-                backgroundColor: "#2E7D32",
-                borderRadius: 2,
-                minWidth: "auto",
-                px: 2,
-              }}
-            >
-              {loading ? "Analyzing..." : "Analyze"}
-            </Button>
-          )}
           <Typography
             variant="caption"
             sx={{
-              color:
-                riskInfo.color === "error"
-                  ? "#d32f2f"
-                  : riskInfo.color === "warning"
-                    ? "#f57c00"
-                    : riskInfo.color === "info"
-                      ? "#1976d2"
-                      : riskInfo.color === "success"
-                        ? "#388e3c"
-                        : "#616161",
-              fontWeight: "bold",
+              color: "text.secondary",
+              fontSize: "0.75rem",
             }}
           >
-            {summary ? "View Details →" : "Get Started →"}
+            {summary.totalVariants} variants • {highPriorityCount} findings
           </Typography>
         </Box>
+        <Typography
+          variant="caption"
+          sx={{
+            color: riskInfo.color,
+            fontWeight: "bold",
+            fontSize: "0.75rem",
+          }}
+        >
+          View →
+        </Typography>
       </Box>
     </Paper>
   );

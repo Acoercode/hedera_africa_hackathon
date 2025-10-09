@@ -75,13 +75,27 @@ class ClinVarService {
         
         variantDataArrays.forEach((variantData, index) => {
           if (variantData && variantData.length >= 2) {
+            // Generate a better disease name based on available data
+            const geneSymbol = variantData[0] || 'UNKNOWN';
+            const clinicalSignificance = variantData[1] || 'Unknown';
+            let diseaseName = variantData[5] || '';
+            
+            // If no disease name from API, generate one based on gene and significance
+            if (!diseaseName || diseaseName.trim() === '') {
+              if (geneSymbol !== 'UNKNOWN') {
+                diseaseName = `${geneSymbol} gene variant`;
+              } else {
+                diseaseName = 'Genetic variant of interest';
+              }
+            }
+
             const variant = {
               variantId: `VCV${variantData[3] || `000${index + 1}`}`,
-              clinicalSignificance: variantData[1] || 'Unknown',
+              clinicalSignificance: clinicalSignificance,
               reviewStatus: variantData[2] || 'Unknown',
-              geneSymbol: variantData[0] || 'UNKNOWN',
+              geneSymbol: geneSymbol,
               variantName: variantData[4] || 'Unknown variant',
-              diseaseName: variantData[5] || 'Unknown disease',
+              diseaseName: diseaseName,
               omimId: variantData[6] || null,
               evidenceLevel: this.mapReviewStatusToEvidenceLevel(variantData[2]),
               lastUpdated: variantData[15] || new Date().toISOString(),
@@ -95,7 +109,7 @@ class ClinVarService {
               genomicPosition: variantData[8] || 'Unknown',
               hgvs: variantData[9] || 'Unknown',
               proteinChange: variantData[10] || 'Unknown',
-              clinicalDescription: `This variant in the ${variantData[0]} gene has ${variantData[1]} clinical significance.`,
+              clinicalDescription: `This variant in the ${geneSymbol} gene has ${clinicalSignificance} clinical significance.`,
               functionalConsequence: variantData[11] || 'Unknown',
               populationFrequency: variantData[12] || 'Unknown',
               references: ['PMID:ClinVar']
@@ -498,10 +512,21 @@ class ClinVarService {
       const geneMatch = lowerQuery.match(/\b[a-z]{2,6}\b/g);
       const extractedGene = geneMatch ? geneMatch[0].toUpperCase() : 'UNKNOWN';
       
-      // Try to extract condition-related terms
+      // Try to extract condition-related terms and provide better names
       const conditionTerms = ['syndrome', 'disease', 'disorder', 'deficiency', 'anemia', 'cancer', 'dystrophy'];
       const foundCondition = conditionTerms.find(term => lowerQuery.includes(term));
-      const conditionName = foundCondition ? `Genetic ${foundCondition}` : 'Genetic condition';
+      
+      // Provide more specific condition names based on the query
+      let conditionName = 'Genetic condition';
+      if (foundCondition) {
+        conditionName = `Genetic ${foundCondition}`;
+      } else if (lowerQuery.includes('genetic') || lowerQuery.includes('variant') || lowerQuery.includes('mutation')) {
+        conditionName = 'Genetic variant of interest';
+      } else if (lowerQuery.includes('health') || lowerQuery.includes('risk')) {
+        conditionName = 'Genetic health risk';
+      } else if (extractedGene !== 'UNKNOWN') {
+        conditionName = `${extractedGene} gene variant`;
+      }
       
       variants.push(
         {

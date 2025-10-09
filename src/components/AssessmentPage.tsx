@@ -70,7 +70,15 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
   const simplifiedSummary = getSimplifiedSummary();
 
   return (
-    <Box sx={{ p: { xs: 1, sm: 2 }, maxWidth: "800px", mx: "auto" }}>
+    <Box
+      sx={{
+        p: { xs: 1, sm: 2 },
+        maxWidth: "800px",
+        mx: "auto",
+        minHeight: "100vh",
+        backgroundColor: { xs: "#f8f9fa", sm: "transparent" },
+      }}
+    >
       {/* Header - Mobile Friendly */}
       <Box sx={{ mb: 4 }}>
         {/* Back Button Row */}
@@ -222,35 +230,45 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
         </Card>
       )}
 
-      {/* Simple Status Overview */}
+      {/* Simple Status Overview - Mobile Optimized */}
       {simplifiedSummary && clinvarResults.length > 0 && (
         <Card sx={{ mb: 3, borderRadius: 3, boxShadow: 2 }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 3 } }}>
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: 2,
-                mb: 2,
-                flexDirection: { xs: "column", sm: "row" },
-                textAlign: { xs: "center", sm: "left" },
+                gap: { xs: 1.5, sm: 2 },
+                mb: { xs: 1.5, sm: 2 },
+                flexDirection: { xs: "row", sm: "row" },
+                textAlign: "left",
               }}
             >
               {simplifiedSummary.hasHighRisk ? (
                 <WarningIcon
-                  sx={{ color: "#f44336", fontSize: { xs: 28, sm: 32 } }}
+                  sx={{
+                    color: "#f44336",
+                    fontSize: { xs: 24, sm: 32 },
+                    flexShrink: 0,
+                  }}
                 />
               ) : (
                 <CheckCircleIcon
-                  sx={{ color: "#4caf50", fontSize: { xs: 28, sm: 32 } }}
+                  sx={{
+                    color: "#4caf50",
+                    fontSize: { xs: 24, sm: 32 },
+                    flexShrink: 0,
+                  }}
                 />
               )}
-              <Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
                   variant="h5"
                   sx={{
                     fontWeight: "bold",
-                    fontSize: { xs: "1.5rem", sm: "1.75rem" },
+                    fontSize: { xs: "1.25rem", sm: "1.75rem" },
+                    lineHeight: 1.2,
+                    mb: 0.5,
                   }}
                 >
                   {simplifiedSummary.hasHighRisk
@@ -258,15 +276,53 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
                     : "All Clear"}
                 </Typography>
                 <Typography
-                  variant="body1"
+                  variant="body2"
                   color="text.secondary"
-                  sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}
+                  sx={{
+                    fontSize: { xs: "0.8rem", sm: "1rem" },
+                    lineHeight: 1.3,
+                  }}
                 >
                   {simplifiedSummary.hasHighRisk
                     ? `${simplifiedSummary.highPriorityCount} genetic finding${simplifiedSummary.highPriorityCount > 1 ? "s" : ""} need${simplifiedSummary.highPriorityCount === 1 ? "s" : ""} attention`
                     : "No high-risk genetic findings detected"}
                 </Typography>
               </Box>
+            </Box>
+
+            {/* Mobile-friendly statistics */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: { xs: 1.5, sm: 2 },
+                flexDirection: { xs: "column", sm: "row" },
+                gap: { xs: 1, sm: 0 },
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: "bold",
+                  fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                  color: "text.secondary",
+                }}
+              >
+                {simplifiedSummary.totalVariants} variants analyzed
+              </Typography>
+              {simplifiedSummary.hasHighRisk && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: "bold",
+                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                    color: "#f44336",
+                  }}
+                >
+                  {simplifiedSummary.highPriorityCount} important findings
+                </Typography>
+              )}
             </Box>
 
             {simplifiedSummary?.hasHighRisk && (
@@ -283,43 +339,54 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
         </Card>
       )}
 
-      {/* Main Conditions (Only show top 3) */}
+      {/* Main Conditions (Only show top 3) - Mobile Optimized */}
       {simplifiedSummary?.mainConditions.length > 0 && (
         <Card sx={{ mb: 3, borderRadius: 3, boxShadow: 2 }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 3 } }}>
             <Typography
               variant="h6"
               sx={{
                 fontWeight: "bold",
-                mb: 2,
+                mb: { xs: 1.5, sm: 2 },
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
-                fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                fontSize: { xs: "1rem", sm: "1.25rem" },
               }}
             >
               <LocalHospitalIcon
-                sx={{ color: "primary.main", fontSize: { xs: 20, sm: 24 } }}
+                sx={{ color: "primary.main", fontSize: { xs: 18, sm: 24 } }}
               />
-              Conditions to Discuss with Your Doctor
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box
+                  sx={{
+                    fontSize: { xs: "1rem", sm: "1.25rem" },
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Conditions to Discuss with Your Doctor
+                </Box>
+              </Box>
             </Typography>
-            <Stack spacing={2}>
+            <Stack spacing={1.5}>
               {simplifiedSummary?.mainConditions.map(
                 (condition: string, index: number) => (
                   <Box
                     key={index}
                     sx={{
-                      p: { xs: 1.5, sm: 2 },
+                      p: { xs: 1.25, sm: 2 },
                       border: "1px solid #e0e0e0",
                       borderRadius: 2,
+                      backgroundColor: { xs: "#fafafa", sm: "transparent" },
                     }}
                   >
                     <Typography
                       variant="subtitle1"
                       sx={{
                         fontWeight: "bold",
-                        mb: 1,
-                        fontSize: { xs: "1rem", sm: "1.1rem" },
+                        mb: 0.75,
+                        fontSize: { xs: "0.9rem", sm: "1.1rem" },
+                        lineHeight: 1.3,
                       }}
                     >
                       {condition}
@@ -327,7 +394,10 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
                     <Typography
                       variant="body2"
                       color="text.secondary"
-                      sx={{ fontSize: { xs: "0.85rem", sm: "0.875rem" } }}
+                      sx={{
+                        fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                        lineHeight: 1.4,
+                      }}
                     >
                       Your genetic data shows an increased risk for this
                       condition. Talk to your doctor about screening and
@@ -341,47 +411,67 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
         </Card>
       )}
 
-      {/* Simple Recommendations */}
+      {/* Simple Recommendations - Mobile Optimized */}
       {simplifiedSummary?.recommendations.length > 0 && (
         <Card sx={{ mb: 3, borderRadius: 3, boxShadow: 2 }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 3 } }}>
             <Typography
               variant="h6"
               sx={{
                 fontWeight: "bold",
-                mb: 2,
+                mb: { xs: 1.5, sm: 2 },
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
-                fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                fontSize: { xs: "1rem", sm: "1.25rem" },
               }}
             >
               <InfoIcon
-                sx={{ color: "primary.main", fontSize: { xs: 20, sm: 24 } }}
+                sx={{ color: "primary.main", fontSize: { xs: 18, sm: 24 } }}
               />
-              What You Should Do Next
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box
+                  sx={{
+                    fontSize: { xs: "1rem", sm: "1.25rem" },
+                    lineHeight: 1.2,
+                  }}
+                >
+                  What You Should Do Next
+                </Box>
+              </Box>
             </Typography>
-            <Stack spacing={1}>
+            <Stack spacing={1.25}>
               {simplifiedSummary?.recommendations.map(
                 (recommendation: string, index: number) => (
                   <Box
                     key={index}
-                    sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1,
+                      p: { xs: 1, sm: 0 },
+                      backgroundColor: { xs: "#f8f9fa", sm: "transparent" },
+                      borderRadius: { xs: 1, sm: 0 },
+                    }}
                   >
                     <Typography
                       variant="body2"
                       sx={{
                         color: "primary.main",
                         fontWeight: "bold",
-                        minWidth: "20px",
-                        fontSize: { xs: "0.85rem", sm: "0.875rem" },
+                        minWidth: "18px",
+                        fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                        flexShrink: 0,
                       }}
                     >
                       {index + 1}.
                     </Typography>
                     <Typography
                       variant="body2"
-                      sx={{ fontSize: { xs: "0.85rem", sm: "0.875rem" } }}
+                      sx={{
+                        fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                        lineHeight: 1.4,
+                      }}
                     >
                       {recommendation}
                     </Typography>
@@ -393,55 +483,66 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
         </Card>
       )}
 
-      {/* Simple Research Section */}
+      {/* Simple Research Section - Mobile Optimized */}
       {researchArticles && researchArticles.length > 0 && (
         <Card sx={{ mb: 3, borderRadius: 3, boxShadow: 2 }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 3 } }}>
             <Typography
               variant="h6"
               sx={{
                 fontWeight: "bold",
-                mb: 2,
+                mb: { xs: 1.5, sm: 2 },
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
-                fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                fontSize: { xs: "1rem", sm: "1.25rem" },
               }}
             >
               <ScienceIcon
-                sx={{ color: "primary.main", fontSize: { xs: 20, sm: 24 } }}
+                sx={{ color: "primary.main", fontSize: { xs: 18, sm: 24 } }}
               />
-              Latest Research
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box
+                  sx={{
+                    fontSize: { xs: "1rem", sm: "1.25rem" },
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Latest Research
+                </Box>
+              </Box>
             </Typography>
             <Typography
               variant="body2"
               color="text.secondary"
               sx={{
-                mb: 2,
-                fontSize: { xs: "0.85rem", sm: "0.875rem" },
+                mb: { xs: 1.5, sm: 2 },
+                fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                lineHeight: 1.3,
               }}
             >
               Here are some recent studies that might be relevant to your
               genetic findings:
             </Typography>
-            <Stack spacing={2}>
+            <Stack spacing={1.5}>
               {researchArticles
                 ?.slice(0, 2)
                 .map((article: any, index: number) => (
                   <Box
                     key={index}
                     sx={{
-                      p: { xs: 1.5, sm: 2 },
+                      p: { xs: 1.25, sm: 2 },
                       border: "1px solid #e0e0e0",
                       borderRadius: 2,
+                      backgroundColor: { xs: "#fafafa", sm: "transparent" },
                     }}
                   >
                     <Typography
                       variant="subtitle2"
                       sx={{
                         fontWeight: "bold",
-                        mb: 1,
-                        fontSize: { xs: "0.9rem", sm: "1rem" },
+                        mb: 0.75,
+                        fontSize: { xs: "0.85rem", sm: "1rem" },
                         lineHeight: 1.3,
                       }}
                     >
@@ -453,7 +554,7 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
                       sx={{
                         display: "block",
                         mb: 1,
-                        fontSize: { xs: "0.75rem", sm: "0.75rem" },
+                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                       }}
                     >
                       {article.journal} • {article.pubDate}
@@ -465,7 +566,9 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
                       target="_blank"
                       sx={{
                         textTransform: "none",
-                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        fontSize: { xs: "0.7rem", sm: "0.875rem" },
+                        minHeight: { xs: "32px", sm: "36px" },
+                        px: { xs: 1.5, sm: 2 },
                       }}
                     >
                       Read Study
@@ -477,11 +580,14 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({
         </Card>
       )}
 
-      {/* Simple Disclaimer */}
-      <Alert severity="info" sx={{ borderRadius: 2 }}>
+      {/* Simple Disclaimer - Mobile Optimized */}
+      <Alert severity="info" sx={{ borderRadius: 2, mt: 2 }}>
         <Typography
           variant="body2"
-          sx={{ fontSize: { xs: "0.85rem", sm: "0.875rem" } }}
+          sx={{
+            fontSize: { xs: "0.8rem", sm: "0.875rem" },
+            lineHeight: 1.4,
+          }}
         >
           <strong>Remember:</strong> This assessment is based on your genetic
           data and should not replace professional medical advice. Always
