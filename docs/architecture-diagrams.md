@@ -161,6 +161,8 @@ sequenceDiagram
     participant UI as Frontend
     participant API as Backend
     participant AI as ChatGPT Service
+    participant CLINVAR as ClinVar Service
+    participant PUBMED as PubMed Service
     participant OPENAI as OpenAI API
     participant HEDERA as Hedera Service
     participant HCS as Hedera Consensus Service
@@ -210,6 +212,37 @@ sequenceDiagram
     API->>DB: Save Insights Activity
     API->>UI: Return Genomic Insights
     UI->>U: Display Genomic Insights
+    
+    Note over U,DB: ClinVar Genomic Assessment Flow
+    U->>UI: Request ClinVar Insights
+    UI->>API: POST /api/ai/clinvar-insights
+    API->>AI: Process ClinVar Insights Request
+    AI->>CLINVAR: Query Variants from Genomic Data
+    CLINVAR->>CLINVAR: Extract Variants (genes, mutations)
+    CLINVAR->>CLINVAR: Search ClinVar API
+    CLINVAR->>AI: Return ClinVar Results
+    AI->>CLINVAR: Generate Insights Summary
+    CLINVAR->>CLINVAR: Analyze Clinical Significance
+    CLINVAR->>CLINVAR: Generate Disease Associations
+    CLINVAR->>AI: Return Insights Summary
+    AI->>CLINVAR: Get African Population Data
+    CLINVAR->>CLINVAR: Query Population-Specific Data
+    CLINVAR->>AI: Return African Population Data
+    AI->>PUBMED: Search Relevant Research Articles
+    PUBMED->>PUBMED: Generate Search Queries
+    PUBMED->>PUBMED: Query PubMed API
+    PUBMED->>AI: Return Research Articles
+    AI->>AI: Combine Genomic + ClinVar + PubMed Context
+    AI->>OPENAI: Send Comprehensive Analysis Prompt
+    OPENAI->>AI: Return Enhanced Genomic Insights
+    AI->>API: Return Insights + ClinVar + PubMed Data
+    API->>HEDERA: Log ClinVar Insights Activity
+    HEDERA->>HCS: Submit Activity to Topic
+    HCS->>HEDERA: Return Transaction ID
+    HEDERA->>API: Return Success
+    API->>DB: Save ClinVar Insights Activity
+    API->>UI: Return Comprehensive Insights
+    UI->>U: Display Insights + Variants + Articles
 ```
 
 ## 6. Data Flow Architecture
@@ -409,36 +442,45 @@ graph TB
 ## 10. Deployment Architecture
 
 ```mermaid
-graph TB
-    subgraph "Production Environment"
+flowchart TB
+    subgraph PROD["Production Environment"]
+        direction TB
         LB[Load Balancer]
         WEB[Web Server]
         API[API Server]
         DB[(MongoDB)]
+        LB --> WEB
+        LB --> API
+        WEB --> DB
+        API --> DB
     end
     
-    subgraph "Hedera Network"
+    subgraph EXT["External Services"]
+        direction LR
+        OPENAI[OpenAI API]
+        RESEARCHHUB[ResearchHub API]
+        PUBMED[PubMed API]
+        CLINVAR[ClinVar API]
+        HASHSCAN[HashScan Explorer]
+    end
+    
+    subgraph HED["Hedera Network"]
+        direction LR
         MAINNET[Hedera Mainnet]
         TESTNET[Hedera Testnet]
     end
     
-    subgraph "External Services"
-        OPENAI[OpenAI API]
-        HASHSCAN[HashScan]
-        RESEARCHHUB[ResearchHub API]
-        PUBMED[PubMed API]
-        CLINVAR[ClinVar API]
-    end
+    PROD --> EXT
+    PROD --> HED
     
-    LB --> WEB
-    LB --> API
-    API --> DB
-    API --> MAINNET
-    API --> OPENAI
-    API --> RESEARCHHUB
-    API --> PUBMED
-    API --> CLINVAR
-    WEB --> HASHSCAN
+    API -->|"AI Processing"| OPENAI
+    API -->|"Research Search"| RESEARCHHUB
+    API -->|"Article Search"| PUBMED
+    API -->|"Variant Analysis"| CLINVAR
+    API -->|"Monitor Transactions"| HASHSCAN
+    
+    API -->|"Log Activities"| MAINNET
+    API -->|"Development"| TESTNET
 ```
 
 ## How to Use These Diagrams
