@@ -7,7 +7,6 @@ graph TB
     subgraph "Frontend (React)"
         UI[React UI Components]
         WC[WalletConnect Client]
-        MM[MetaMask Client]
         CTX[React Contexts]
     end
     
@@ -16,6 +15,7 @@ graph TB
         HEDERA[Hedera Service]
         INC[Incentive Service]
         AI[ChatGPT Service]
+        RESEARCH[Research Services]
         DB[(MongoDB)]
     end
     
@@ -28,16 +28,19 @@ graph TB
     subgraph "External Services"
         OPENAI[OpenAI ChatGPT API]
         HASHSCAN[HashScan Explorer]
+        RESEARCHHUB[ResearchHub API]
+        PUBMED[PubMed API]
+        CLINVAR[ClinVar API]
     end
     
     UI --> API
     WC --> HEDERA
-    MM --> HEDERA
     CTX --> UI
     
     API --> HEDERA
     API --> INC
     API --> AI
+    API --> RESEARCH
     API --> DB
     
     HEDERA --> HCS
@@ -45,6 +48,9 @@ graph TB
     HEDERA --> MIRROR
     
     AI --> OPENAI
+    RESEARCH --> RESEARCHHUB
+    RESEARCH --> PUBMED
+    RESEARCH --> CLINVAR
     UI --> HASHSCAN
 ```
 
@@ -232,6 +238,7 @@ graph LR
         INC[Incentive Service]
         AI[AI Service]
         AUTH[Auth Service]
+        RESEARCH[Research Services]
     end
     
     subgraph "Data Layer"
@@ -250,10 +257,12 @@ graph LR
     VALIDATION --> HEDERA
     VALIDATION --> INC
     VALIDATION --> AI
+    VALIDATION --> RESEARCH
     HEDERA --> HCS
     HEDERA --> HTS
     INC --> HTS
     AI --> DB
+    RESEARCH --> DB
     HEDERA --> DB
 ```
 
@@ -356,6 +365,7 @@ graph TB
         AI[AITab]
         ACTIVITY[ActivityTab]
         DATA[DataTab]
+        RESOURCES[ResourcesTab]
         WALLET[WalletTab]
     end
     
@@ -368,7 +378,6 @@ graph TB
     subgraph "Context Providers"
         USER[UserContext]
         WC[WalletConnectContext]
-        MM[MetamaskContext]
     end
     
     subgraph "Custom Hooks"
@@ -382,6 +391,7 @@ graph TB
     MAIN --> AI
     MAIN --> ACTIVITY
     MAIN --> DATA
+    MAIN --> RESOURCES
     MAIN --> WALLET
     
     PROFILE --> CONSENT
@@ -390,7 +400,6 @@ graph TB
     
     MAIN --> USER
     MAIN --> WC
-    MAIN --> MM
     
     MAIN --> APPSTATE
     MAIN --> WALLETREFRESH
@@ -416,6 +425,9 @@ graph TB
     subgraph "External Services"
         OPENAI[OpenAI API]
         HASHSCAN[HashScan]
+        RESEARCHHUB[ResearchHub API]
+        PUBMED[PubMed API]
+        CLINVAR[ClinVar API]
     end
     
     LB --> WEB
@@ -423,6 +435,9 @@ graph TB
     API --> DB
     API --> MAINNET
     API --> OPENAI
+    API --> RESEARCHHUB
+    API --> PUBMED
+    API --> CLINVAR
     WEB --> HASHSCAN
 ```
 
@@ -510,3 +525,65 @@ graph TB
 - **Transparency**: All AI interactions logged on ledger for audit trail
 - **Incentivized Usage**: RDZ tokens reward user engagement with AI features
 - **Privacy-Preserving**: Genomic data processed securely without permanent storage
+
+## Research Resources Integration
+
+### 1. ResearchHub Integration
+- **Purpose**: Automatically search for relevant research papers based on patient condition
+- **Input**: Patient condition from genomic data
+- **Processing**: ResearchHub API search for condition-related papers
+- **Output**: List of research papers with title, authors, DOI, citations, and publication date
+- **Features**: 
+  - Automatic search on condition availability
+  - Direct links to ResearchHub paper pages
+  - Citation count and publication date display
+- **Styling**: Purple-themed cards (#3F37C9) with consistent card format
+
+### 2. PubMed Integration
+- **Purpose**: Access peer-reviewed research articles from PubMed database
+- **Input**: Genetic variants and condition data from genomic profile
+- **Processing**: PubMed API search based on genetic findings and condition
+- **Output**: Research articles with relevance scores, abstracts, and metadata
+- **Features**:
+  - Relevance scoring (1-10 scale)
+  - Abstract previews
+  - Search type categorization (treatment, clinical trial, gene therapy, etc.)
+  - Direct links to PubMed articles with PMID
+- **Styling**: Green-themed cards (#2E7D32) matching ResearchHub card format
+- **Integration**: Articles fetched when user generates ClinVar insights
+
+### 3. ClinVar Integration
+- **Purpose**: Genetic variant analysis with clinical significance data
+- **Input**: Genetic variants from patient genomic data
+- **Processing**: ClinVar API query for variant clinical significance
+- **Output**: 
+  - Variant clinical significance (pathogenic, likely pathogenic, VUS, etc.)
+  - Disease associations
+  - Review status
+  - Population frequency data
+- **Features**:
+  - Automatic variant matching
+  - African population-specific data
+  - Summary statistics and insights
+- **Integration**: Variants analyzed when user generates insights
+
+### 4. Unified Resource Display
+- **Consistent Card Format**: All research sources use the same card design with source-specific colors
+- **Organization**: Resources tab organizes all research by source
+- **Priority Order**: 
+  1. ResearchHub (top) - Purple theme
+  2. PubMed Articles - Green theme
+  3. ClinVar Variants - Summary display
+  4. African Population Data - When available
+- **User Experience**: 
+  - Automatic updates when condition data is available
+  - Loading states during API calls
+  - Error handling and fallback messages
+  - Direct navigation from AI tab to Resources
+
+### Research Integration Benefits
+- **Comprehensive Research Access**: Single location for all research resources
+- **Automatic Discovery**: Research automatically found based on patient condition
+- **Consistent UX**: Unified card format across all research sources
+- **Source Identification**: Color-coded cards for easy source identification
+- **Evidence-Based Insights**: Access to latest research to inform healthcare decisions

@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { TopicMessageSubmitTransaction } = require('@hashgraph/sdk');
 const chatgptService = require('../services/chatgptService');
 const clinvarService = require('../services/clinvarService');
+const researchHubService = require('../services/researchHubService');
 const hederaService = require('../services/hederaService');
 const Activity = require('../models/Activity');
 
@@ -411,6 +412,47 @@ router.get('/clinvar/search', async (req, res) => {
   } catch (error) {
     console.error('Error in ClinVar search route:', error);
     res.status(500).json({ error: 'Failed to search ClinVar database' });
+  }
+});
+
+// GET /api/ai/research/condition - Search ResearchHub for papers related to condition
+router.get('/research/condition', async (req, res) => {
+  try {
+    const { condition, accountId, maxResults = 5 } = req.query;
+
+    if (!condition) {
+      return res.status(400).json({ error: 'Condition is required' });
+    }
+
+    console.log(`📚 Searching ResearchHub for condition: ${condition}`);
+
+    // Search ResearchHub for relevant papers
+    const papers = await researchHubService.searchRelevantPapers(
+      condition,
+      parseInt(maxResults)
+    );
+
+    // Log research search activity (no incentive for automatic searches)
+    if (accountId) {
+      await logAIActivity(
+        accountId,
+        'researchhub_search',
+        `Searched ResearchHub for condition: ${condition}`,
+        0
+      );
+    }
+
+    res.json({
+      success: true,
+      condition: condition,
+      papers: papers,
+      totalResults: papers.length,
+      source: 'ResearchHub'
+    });
+
+  } catch (error) {
+    console.error('Error in ResearchHub search route:', error);
+    res.status(500).json({ error: 'Failed to search ResearchHub' });
   }
 });
 

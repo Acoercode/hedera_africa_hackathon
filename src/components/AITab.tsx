@@ -24,11 +24,11 @@ import {
   ExpandMore as ExpandMoreIcon,
   Download as DownloadIcon,
   ContentCopy as CopyIcon,
+  LibraryBooks as LibraryBooksIcon,
 } from "@mui/icons-material";
 import { useUser } from "../contexts/UserContext";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { ReactComponent as ChatIcon } from "../assets/ai_icon_color.svg";
-import { ClinicalTrials, DetailedEvidence } from "./ClinVarComponents";
 import { ReactComponent as FHIRIcon } from "../assets/fhir_icon.svg";
 import { ReactComponent as InsightsIcon } from "../assets/trends_icon.svg";
 
@@ -53,12 +53,14 @@ const AITab: React.FC<{
   africanPopulationData?: any[];
   onGenerateClinVarInsights?: () => void;
   clinvarLoading?: boolean;
+  onNavigateToResources?: () => void;
 }> = ({
   clinvarResults = [],
   clinvarSummary = null,
   africanPopulationData = [],
   onGenerateClinVarInsights,
   clinvarLoading = false,
+  onNavigateToResources,
 }) => {
   const { genomicData } = useUser();
   const { accountId } = useWalletInterface();
@@ -292,9 +294,8 @@ const AITab: React.FC<{
       <Alert severity="info" sx={{ mb: 2 }}>
         <Typography variant="body2">
           <strong>Research-Enhanced AI Assistant:</strong> This chat uses
-          ClinVar clinical evidence, latest PubMed research, and African
-          population data to provide evidence-based responses. Earn 25 RDZ
-          tokens per conversation!
+          genetic data analysis and research insights to provide evidence-based
+          responses. Earn 25 RDZ tokens per conversation!
         </Typography>
       </Alert>
 
@@ -334,8 +335,7 @@ const AITab: React.FC<{
               >
                 Ask questions about your genetic findings, health implications,
                 or any concerns you may have. I have access to the latest
-                research from PubMed and ClinVar clinical evidence to provide
-                evidence-based answers.
+                research data to provide evidence-based answers.
               </Typography>
             </Box>
           </Box>
@@ -473,12 +473,13 @@ const AITab: React.FC<{
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 1 }}>
-            Genomic Data to FHIR
+            Genomic Data to FHIR Export
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Transform your genomic data into standardized FHIR resources
             including Patient, Observation, DiagnosticReport, and Procedure
-            resources.
+            resources in order to seamlessly share your data with your
+            healthcare provider.
           </Typography>
 
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
@@ -490,7 +491,7 @@ const AITab: React.FC<{
                 fhirLoading ? <CircularProgress size={20} /> : <FHIRIcon />
               }
             >
-              {fhirLoading ? "Converting..." : "Convert to FHIR"}
+              {fhirLoading ? "Converting..." : "Share my data"}
             </Button>
 
             {fhirBundle && (
@@ -499,7 +500,7 @@ const AITab: React.FC<{
                 onClick={() => setFhirDialogOpen(true)}
                 startIcon={<FHIRIcon />}
               >
-                View FHIR Bundle
+                View FHIR Bundle Export
               </Button>
             )}
           </Box>
@@ -507,8 +508,9 @@ const AITab: React.FC<{
           {fhirBundle && (
             <Alert severity="success" sx={{ mb: 2 }}>
               <Typography variant="body2">
-                FHIR bundle created successfully! Click "View FHIR Bundle" to
-                see the complete bundle or use the copy/download buttons.
+                Export FHIR bundle created successfully! Click "View FHIR Bundle
+                Export" to see the complete bundle or use the copy/download
+                buttons.
               </Typography>
             </Alert>
           )}
@@ -611,10 +613,9 @@ const AITab: React.FC<{
             Generate Research-Enhanced Insights
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            AI will analyze your genomic data using ClinVar clinical evidence,
-            latest PubMed research, and African population data to provide
-            comprehensive insights on genetic findings, health risks, treatment
-            options, and questions for your healthcare provider.
+            AI will analyze your genomic data to provide comprehensive insights
+            on genetic findings, health risks, treatment options, and questions
+            for your healthcare provider.
           </Typography>
 
           <Button
@@ -669,17 +670,42 @@ const AITab: React.FC<{
         </Card>
       )}
 
-      {/* Clinical Trials Section */}
-      {clinvarSummary && clinvarSummary.diseaseAssociations && (
-        <ClinicalTrials
-          diseaseAssociations={clinvarSummary.diseaseAssociations}
-        />
-      )}
-
-      {/* Detailed Evidence Section */}
-      {clinvarResults && clinvarResults.length > 0 && (
-        <DetailedEvidence clinvarResults={clinvarResults} />
-      )}
+      {/* Research Resources Link */}
+      <Card sx={{ mt: 3, borderRadius: 2 }}>
+        <CardContent>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <LibraryBooksIcon
+                sx={{ color: "#3F37C9", mr: 1.5, fontSize: 28 }}
+              />
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 0.5 }}>
+                  View Research Resources
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Access PubMed articles, ClinVar data, and ResearchHub papers
+                  related to your condition
+                </Typography>
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={onNavigateToResources}
+              disabled={!onNavigateToResources}
+              sx={{ ml: 2 }}
+            >
+              Go to Resources
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
     </Box>
   );
 
@@ -807,7 +833,7 @@ const AITab: React.FC<{
                 fontWeight: activeTab === 1 ? "bold" : "normal",
               }}
             >
-              FHIR Translation
+              Share Data
             </Typography>
           </Stack>
         </Grid>
