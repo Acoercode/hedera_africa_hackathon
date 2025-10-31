@@ -138,25 +138,37 @@ export const PubMedFeed: React.FC<PubMedFeedProps> = ({
               lineHeight: 1.3,
             }}
           >
-            {article.title}
+            {typeof article.title === "string"
+              ? article.title
+              : String(article.title || "Untitled")}
           </Typography>
 
-          {article.authors && article.authors.length > 0 && (
-            <Typography
-              variant="caption"
-              sx={{ color: "#666", display: "block", mb: 1 }}
-            >
-              {article.authors.slice(0, 4).join(", ")}
-              {article.authors.length > 4 ? " et al." : ""}
-            </Typography>
-          )}
+          {article.authors &&
+            Array.isArray(article.authors) &&
+            article.authors.length > 0 && (
+              <Typography
+                variant="caption"
+                sx={{ color: "#666", display: "block", mb: 1 }}
+              >
+                {article.authors
+                  .slice(0, 4)
+                  .map((author: any) =>
+                    typeof author === "string" ? author : String(author || ""),
+                  )
+                  .filter(Boolean)
+                  .join(", ")}
+                {article.authors.length > 4 ? " et al." : ""}
+              </Typography>
+            )}
 
           {article.journal && (
             <Typography
               variant="caption"
               sx={{ color: "#666", display: "block", mb: 1 }}
             >
-              {article.journal}
+              {typeof article.journal === "string"
+                ? article.journal
+                : String(article.journal || "")}
             </Typography>
           )}
 
@@ -171,9 +183,15 @@ export const PubMedFeed: React.FC<PubMedFeedProps> = ({
                 lineHeight: 1.5,
               }}
             >
-              {article.abstract.length > 200
-                ? `${article.abstract.substring(0, 200)}...`
-                : article.abstract}
+              {(() => {
+                const abstractStr =
+                  typeof article.abstract === "string"
+                    ? article.abstract
+                    : String(article.abstract || "");
+                return abstractStr.length > 200
+                  ? `${abstractStr.substring(0, 200)}...`
+                  : abstractStr;
+              })()}
             </Typography>
           )}
 
@@ -201,7 +219,10 @@ export const PubMedFeed: React.FC<PubMedFeedProps> = ({
               variant="caption"
               sx={{ color: "#999", fontSize: "0.75rem" }}
             >
-              PMID: {article.pmid}
+              PMID:{" "}
+              {typeof article.pmid === "string"
+                ? article.pmid
+                : String(article.pmid || "")}
             </Typography>
           </Box>
         </Card>
