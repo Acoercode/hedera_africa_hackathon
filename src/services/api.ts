@@ -224,6 +224,28 @@ class ApiService {
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     return this.request("/health");
   }
+
+  // ResearchHub search endpoints
+  async searchResearchHub(
+    condition: string,
+    maxResults: number = 5,
+    accountId?: string,
+  ): Promise<{
+    success: boolean;
+    condition: string;
+    papers: any[];
+    totalResults: number;
+    source: string;
+  }> {
+    const params = new URLSearchParams({
+      condition,
+      maxResults: maxResults.toString(),
+    });
+    if (accountId) {
+      params.append("accountId", accountId);
+    }
+    return this.request(`/ai/research/condition?${params.toString()}`);
+  }
 }
 
 export const apiService = new ApiService();

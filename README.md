@@ -11,6 +11,7 @@ RDZ Health is a patient-centric genomic data platform that leverages Hedera Hash
 - 🎫 **Consent Management** - Immutable consent records with expiration
 - 💰 **Incentive System** - RDZ tokens for data sharing and participation
 - 🤖 **AI-Powered Insights** - ChatGPT integration for genomic analysis
+- 📚 **Research Resources** - Integrated access to ResearchHub, PubMed, and ClinVar data
 - 📊 **Activity Tracking** - Complete audit trail on Hedera
 - 🏥 **FHIR Compliance** - Healthcare interoperability standards
 
@@ -20,12 +21,13 @@ RDZ Health is a patient-centric genomic data platform that leverages Hedera Hash
 - **Material-UI** for modern, responsive design
 - **Hedera Wallet Connect** for Hedera Hashgraph integration
 - **Real-time** activity tracking and notifications
-- **Multi-tab interface** with patient profile, data sharing, AI tools, and wallet
+- **Multi-tab interface** with patient profile, data sharing, research resources, AI tools, and wallet
 
 ### **Backend (Node.js + Express)**
 - **MongoDB** for patient and genomic data storage
 - **Hedera SDK** for Hedera Hashgraph DLT operations
 - **RESTful API** with comprehensive endpoints
+- **External API Integration** - ResearchHub, PubMed, and ClinVar services
 - **Security** with Helmet, CORS, and rate limiting
 
 ### **DLT Integration (Hedera Hashgraph)**
@@ -53,7 +55,15 @@ RDZ Health is a patient-centric genomic data platform that leverages Hedera Hash
 - **Genomic Insights** - AI-generated health recommendations
 - **Activity Tracking** - All AI interactions logged on Hedera
 
-### **4. Incentive & Reward System**
+### **4. Research Resources Integration**
+- **ResearchHub Integration** - Automatic search for relevant papers based on patient condition
+- **PubMed Integration** - Access to peer-reviewed research articles from PubMed database
+- **ClinVar Integration** - Genetic variant analysis with clinical significance data
+- **Unified Card Format** - Consistent, user-friendly display of all research sources
+- **Automatic Updates** - Research articles automatically fetched and displayed
+- **Source-Specific Styling** - Color-coded cards (ResearchHub: purple, PubMed: green)
+
+### **5. Incentive & Reward System**
 - **RDZ Token Distribution** - Automated reward system
 - **Activity-Based Rewards**:
   - Data sync consent: 100 RDZ tokens
@@ -63,7 +73,7 @@ RDZ Health is a patient-centric genomic data platform that leverages Hedera Hash
   - FHIR translation: 50 RDZ tokens
   - Genomic insights: 25 RDZ tokens
 
-### **5. Activity & Audit Trail**
+### **6. Activity & Audit Trail**
 - **Complete Activity Log** - All user actions tracked
 - **Hedera Integration** - Immutable DLT records on the ledger
 - **Filtered Views** - Consent, Data, Incentives, AI activities
@@ -114,6 +124,9 @@ TransferTransaction
 - **MongoDB** with Mongoose ODM
 - **Hedera SDK** for DLT operations
 - **ChatGPT API** for AI features
+- **ResearchHub API** for research paper search
+- **PubMed API** for scientific article retrieval
+- **ClinVar API** for genetic variant analysis
 
 ### **DLT**
 - **Hedera Hashgraph** testnet
@@ -128,12 +141,19 @@ TransferTransaction
 2. **Data** - Consent management and data sharing
 3. **Activity** - Complete activity history and audit trail
 4. **AI** - ChatGPT-powered genomic insights
-5. **Wallet** - Token balance and NFT management
+5. **Resources** - Research papers from ResearchHub, PubMed, and ClinVar data
+6. **Wallet** - Token balance and NFT management
 
 ### **AI Features Interface**
 - **Chat Assistant** - Interactive genomic Q&A
 - **FHIR Translation** - Convert data to healthcare standards
 - **Genomic Insights** - AI-generated health recommendations
+
+### **Resources Tab Interface**
+- **ResearchHub Papers** - Latest research papers automatically searched by condition
+- **PubMed Articles** - Peer-reviewed research articles with relevance scores
+- **ClinVar Variants** - Genetic variant analysis with clinical significance
+- **African Population Data** - Population-specific genetic data when available
 
 ## 🔧 **Installation & Setup**
 
@@ -217,6 +237,8 @@ cd server && npm start
 - `POST /api/ai/chat` - ChatGPT conversation
 - `POST /api/ai/translate-fhir` - FHIR translation
 - `POST /api/ai/generate-insights` - Genomic insights
+- `POST /api/ai/clinvar-insights` - Generate ClinVar insights with research data
+- `GET /api/ai/research/condition` - Search ResearchHub for condition-related papers
 
 ### **Incentives**
 - `GET /api/incentives/balance/:accountId` - Token balance
@@ -273,6 +295,7 @@ cd server && npm start
 - NFT-based data ownership
 - AI-powered insights
 - Incentive system
+- Research resources integration (ResearchHub, PubMed, ClinVar)
 
 ### **Phase 2** 🔄 (Planned)
 - Advanced AI models

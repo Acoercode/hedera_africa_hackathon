@@ -1080,9 +1080,9 @@ const ConsentManagement: React.FC<ConsentManagementProps> = ({
                       sx={{ mr: 1, color: "primary.main" }}
                     />
                     <Typography variant="body2" color="text.secondary">
-                      {consent.consentStatus === "revoked"
-                        ? "Enabling NFT..."
-                        : "Revoking NFT..."}
+                      {consent.consentStatus === "granted"
+                        ? "Revoking NFT..."
+                        : "Creating NFT..."}
                     </Typography>
                   </Box>
                 )}

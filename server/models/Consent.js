@@ -5,15 +5,13 @@ const consentSchema = new mongoose.Schema({
   consentId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   
   // Patient reference
   patientId: {
     type: String,
     required: true,
-    index: true,
     ref: 'Patient'
   },
   
@@ -106,14 +104,12 @@ const consentSchema = new mongoose.Schema({
   },
   consentHash: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   consentTransactionId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   topicId: {
     type: String,
@@ -122,16 +118,13 @@ const consentSchema = new mongoose.Schema({
   
   // NFT integration
   consentNFTTokenId: {
-    type: String,
-    index: true
+    type: String
   },
   consentNFTSerialNumber: {
-    type: String,
-    index: true
+    type: String
   },
   consentNFTTransactionId: {
-    type: String,
-    index: true
+    type: String
   },
   nftMintedAt: {
     type: Date
@@ -205,13 +198,7 @@ consentSchema.virtual('daysUntilExpiration').get(function() {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 });
 
-// Indexes for performance
-consentSchema.index({ patientId: 1, consentType: 1 });
-consentSchema.index({ consentStatus: 1 });
-consentSchema.index({ consentHash: 1 });
-consentSchema.index({ consentTransactionId: 1 });
-consentSchema.index({ topicId: 1 });
-consentSchema.index({ validFrom: 1, validUntil: 1 });
+// Indexes removed to prevent automatic creation
 
 // Pre-save middleware
 consentSchema.pre('save', function(next) {

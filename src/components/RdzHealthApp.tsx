@@ -21,6 +21,7 @@ import {
 import {
   Person as PersonIcon,
   Logout as LogoutIcon,
+  LibraryBooks as LibraryBooksIcon,
 } from "@mui/icons-material";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { useUser } from "../contexts/UserContext";
@@ -45,6 +46,10 @@ import { ReactComponent as FamilyIcon } from "../assets/family_icon.svg";
 import { ReactComponent as BenefitsIcon } from "../assets/benefits_icon.svg";
 import { ReactComponent as IHopeIdIcon } from "../assets/id_icon.svg";
 import { ReactComponent as StarIcon } from "../assets/star_icon.svg";
+import { AssessmentNotification } from "./ClinVarComponents";
+import { AssessmentPage } from "./AssessmentPage";
+import { ResearchFeed } from "./ResearchFeed";
+import { ResourcesTab } from "./ResourcesTab";
 
 interface RdzHealthAppProps {
   onLogout: () => void;
@@ -64,6 +69,14 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
     refetchUser,
   } = useUser();
 
+  // ClinVar state
+  const [clinvarSummary, setClinvarSummary] = useState<any>(null);
+  const [clinvarResults, setClinvarResults] = useState<any[]>([]);
+  const [africanPopulationData, setAfricanPopulationData] = useState<any[]>([]);
+  const [researchArticles, setResearchArticles] = useState<any[]>([]);
+  const [clinvarLoading, setClinvarLoading] = useState(false);
+  const [showAssessmentPage, setShowAssessmentPage] = useState(false);
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
@@ -80,6 +93,40 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
   const handleConsentCreated = async () => {
     if (refetchUser) {
       await refetchUser();
+    }
+  };
+
+  const generateClinVarInsights = async () => {
+    if (!genomicData || !accountId) return;
+
+    setClinvarLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_ROOT}/ai/clinvar-insights`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            genomicData: genomicData,
+            accountId: accountId,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setClinvarResults(data.clinvarResults || []);
+        setClinvarSummary(data.insightsSummary || null);
+        setAfricanPopulationData(data.africanPopulationData || []);
+        setResearchArticles(data.researchArticles || []);
+      }
+    } catch (error) {
+      console.error("Error generating ClinVar insights:", error);
+    } finally {
+      setClinvarLoading(false);
     }
   };
 
@@ -106,6 +153,21 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
   };
 
   const renderMainContent = () => {
+    // Show Assessment Page if requested
+    if (showAssessmentPage) {
+      return (
+        <AssessmentPage
+          clinvarSummary={clinvarSummary}
+          clinvarResults={clinvarResults}
+          africanPopulationData={africanPopulationData}
+          researchArticles={researchArticles}
+          onGenerateClinVarInsights={generateClinVarInsights}
+          clinvarLoading={clinvarLoading}
+          onBack={() => setShowAssessmentPage(false)}
+        />
+      );
+    }
+
     switch (currentTab) {
       case 0: // My Profile
         return (
@@ -121,6 +183,11 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
               setAutoOpenDataSyncConsent(true);
               setCurrentTab(1); // Switch to Data tab
             }}
+            clinvarSummary={clinvarSummary}
+            clinvarResults={clinvarResults}
+            onGenerateClinVarInsights={generateClinVarInsights}
+            clinvarLoading={clinvarLoading}
+            onViewAssessment={() => setShowAssessmentPage(true)}
           />
         );
       case 1: // Data Sharing
@@ -136,15 +203,45 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
               setCurrentTab(1); // Switch to Data tab
             }}
             onConsentCreated={handleConsentCreated}
+            clinvarResults={clinvarResults}
+            africanPopulationData={africanPopulationData}
+            onGenerateClinVarInsights={generateClinVarInsights}
+            clinvarLoading={clinvarLoading}
           />
         );
       case 2: // Activity
-        return <ActivityTab walletInterface={walletInterface} />;
+        return (
+          <ActivityTab
+            walletInterface={walletInterface}
+            clinvarResults={clinvarResults}
+            clinvarSummary={clinvarSummary}
+          />
+        );
       case 3: // AI
-        return <AITab />;
-      case 4: // Wallet
+        return (
+          <AITab
+            clinvarResults={clinvarResults}
+            clinvarSummary={clinvarSummary}
+            africanPopulationData={africanPopulationData}
+            onGenerateClinVarInsights={generateClinVarInsights}
+            clinvarLoading={clinvarLoading}
+            onNavigateToResources={() => setCurrentTab(4)}
+          />
+        );
+      case 4: // Resources
+        return (
+          <ResourcesTab
+            condition={genomicData?.condition}
+            clinvarResults={clinvarResults}
+            researchArticles={researchArticles}
+            africanPopulationData={africanPopulationData}
+            onGenerateClinVarInsights={generateClinVarInsights}
+            clinvarLoading={clinvarLoading}
+          />
+        );
+      case 5: // Wallet
         return <WalletTab />;
-      case 5: // Data Sync
+      case 6: // Data Sync
         return (
           <DataSyncManagement
             accountId={accountId}
@@ -268,9 +365,23 @@ const RdzHealthApp: React.FC<RdzHealthAppProps> = ({ onLogout }) => {
             }
           />
           <BottomNavigationAction
-            label="Wallet"
+            label="Resources"
             icon={
               currentTab === 4 ? (
+                <LibraryBooksIcon
+                  style={{ width: 24, height: 24, color: "#3F37C9" }}
+                />
+              ) : (
+                <LibraryBooksIcon
+                  style={{ width: 24, height: 24, opacity: 0.5 }}
+                />
+              )
+            }
+          />
+          <BottomNavigationAction
+            label="Wallet"
+            icon={
+              currentTab === 5 ? (
                 <WalletIcon style={{ width: 24, height: 24 }} />
               ) : (
                 <WalletIconGray style={{ width: 24, height: 24 }} />
@@ -321,6 +432,11 @@ const ProfileTab: React.FC<{
   userLoading: boolean;
   userError: string | null;
   onRequestDataSyncConsent: () => void;
+  clinvarSummary?: any;
+  clinvarResults?: any[];
+  onGenerateClinVarInsights?: () => void;
+  clinvarLoading?: boolean;
+  onViewAssessment?: () => void;
 }> = ({
   walletInterface,
   currentProfileCard,
@@ -330,6 +446,11 @@ const ProfileTab: React.FC<{
   userLoading,
   userError,
   onRequestDataSyncConsent,
+  clinvarSummary = null,
+  clinvarResults = [],
+  onGenerateClinVarInsights,
+  clinvarLoading = false,
+  onViewAssessment,
 }) => {
   if (userLoading) {
     return (
@@ -406,6 +527,19 @@ const ProfileTab: React.FC<{
       >
         My Health Profile
       </Typography>
+
+      {/* ClinVar Risk Assessment - Show on Patient Overview */}
+      {currentProfileCard === 0 && genomicData && (
+        <Box sx={{ mt: 3 }}>
+          <AssessmentNotification
+            summary={clinvarSummary}
+            onViewAssessment={onViewAssessment}
+            onGenerateInsights={onGenerateClinVarInsights}
+            loading={clinvarLoading}
+            existingDiagnosis={genomicData?.condition}
+          />
+        </Box>
+      )}
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={4}>
@@ -545,380 +679,383 @@ const ProfileTab: React.FC<{
       {/* Content Area */}
       <Box>
         {currentProfileCard === 0 && (
-          <Grid container spacing={2}>
-            {/* Patient Details Card */}
-            <Grid item xs={12} md={6}>
-              <Card sx={{ p: 2, borderRadius: 4, height: "100%" }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    mb: 2,
-                    color: "#3F37C9",
-                    fontWeight: "bold",
-                    fontSize: "1.1rem",
-                  }}
-                >
-                  Patient Details
-                </Typography>
-                {genomicData ? (
-                  <Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Full Name
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.name} {genomicData.surname}
-                      </Typography>
+          <>
+            <Grid container spacing={2}>
+              {/* Patient Details Card */}
+              <Grid item xs={12} md={6}>
+                <Card sx={{ p: 2, borderRadius: 4, height: "100%" }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      mb: 2,
+                      color: "#3F37C9",
+                      fontWeight: "bold",
+                      fontSize: "1.1rem",
+                    }}
+                  >
+                    Patient Details
+                  </Typography>
+                  {genomicData ? (
+                    <Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Full Name
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.name} {genomicData.surname}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Date of Birth
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {new Date(genomicData.dob).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Sex
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.sex}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Ethnicity
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.ethnicity}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          iHOPE ID
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.ihopeId}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Contact
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.telephone}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Address
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.address}, {genomicData.city}
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box sx={{ mb: 1.5 }}>
+                  ) : (
+                    <Box>
                       <Typography
                         variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
+                        color="text.secondary"
+                        sx={{ mb: 2 }}
                       >
-                        Date of Birth
+                        Patient details are not available.
                       </Typography>
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        color="warning.main"
+                        sx={{ mb: 1 }}
                       >
-                        {new Date(genomicData.dob).toLocaleDateString()}
+                        🔒 Data Access Restricted
                       </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mb: 2, display: "block" }}
+                      >
+                        To view your patient details, please consent to data
+                        synchronization.
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={onRequestDataSyncConsent}
+                      >
+                        Enable Data Access
+                      </Button>
                     </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Sex
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.sex}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Ethnicity
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.ethnicity}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        iHOPE ID
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.ihopeId}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Contact
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.telephone}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Address
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.address}, {genomicData.city}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 2 }}
-                    >
-                      Patient details are not available.
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="warning.main"
-                      sx={{ mb: 1 }}
-                    >
-                      🔒 Data Access Restricted
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ mb: 2, display: "block" }}
-                    >
-                      To view your patient details, please consent to data
-                      synchronization.
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      onClick={onRequestDataSyncConsent}
-                    >
-                      Enable Data Access
-                    </Button>
-                  </Box>
-                )}
-              </Card>
-            </Grid>
+                  )}
+                </Card>
+              </Grid>
 
-            {/* Diagnosis & Status Card */}
-            <Grid item xs={12} md={6}>
-              <Card sx={{ p: 2, borderRadius: 4, height: "100%" }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    mb: 2,
-                    color: "#3F37C9",
-                    fontWeight: "bold",
-                    fontSize: "1.1rem",
-                  }}
-                >
-                  Diagnosis & Status
-                </Typography>
-                {genomicData ? (
-                  <Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Clinical Status
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.clinicalStatus}
-                      </Typography>
+              {/* Diagnosis & Status Card */}
+              <Grid item xs={12} md={6}>
+                <Card sx={{ p: 2, borderRadius: 4, height: "100%" }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      mb: 2,
+                      color: "#3F37C9",
+                      fontWeight: "bold",
+                      fontSize: "1.1rem",
+                    }}
+                  >
+                    Diagnosis & Status
+                  </Typography>
+                  {genomicData ? (
+                    <Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Clinical Status
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.clinicalStatus}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Health Status
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.healthStatus}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Condition
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.condition || "Not specified"}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Date of First Diagnosis
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.dateOfFirstDiagnosis
+                            ? new Date(
+                                genomicData.dateOfFirstDiagnosis,
+                              ).toLocaleDateString()
+                            : "Not available"}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Findings
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.findings || "No findings reported"}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666666",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                            mb: 0.25,
+                          }}
+                        >
+                          Referring Physician
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        >
+                          {genomicData.referringPhysician || "Not specified"}
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box sx={{ mb: 1.5 }}>
+                  ) : (
+                    <Box>
                       <Typography
                         variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
+                        color="text.secondary"
+                        sx={{ mb: 2 }}
                       >
-                        Health Status
+                        Diagnosis and status information is not available.
                       </Typography>
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
+                        color="warning.main"
+                        sx={{ mb: 1 }}
                       >
-                        {genomicData.healthStatus}
+                        🔒 Data Access Restricted
                       </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mb: 2, display: "block" }}
+                      >
+                        To view your diagnosis information, please consent to
+                        data synchronization.
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={onRequestDataSyncConsent}
+                      >
+                        Enable Data Access
+                      </Button>
                     </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Condition
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.condition || "Not specified"}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Date of First Diagnosis
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.dateOfFirstDiagnosis
-                          ? new Date(
-                              genomicData.dateOfFirstDiagnosis,
-                            ).toLocaleDateString()
-                          : "Not available"}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Findings
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.findings || "No findings reported"}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666666",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                          mb: 0.25,
-                        }}
-                      >
-                        Referring Physician
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "500", fontSize: "0.9rem" }}
-                      >
-                        {genomicData.referringPhysician || "Not specified"}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 2 }}
-                    >
-                      Diagnosis and status information is not available.
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="warning.main"
-                      sx={{ mb: 1 }}
-                    >
-                      🔒 Data Access Restricted
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ mb: 2, display: "block" }}
-                    >
-                      To view your diagnosis information, please consent to data
-                      synchronization.
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      onClick={onRequestDataSyncConsent}
-                    >
-                      Enable Data Access
-                    </Button>
-                  </Box>
-                )}
-              </Card>
+                  )}
+                </Card>
+              </Grid>
             </Grid>
-          </Grid>
+          </>
         )}
+
         {currentProfileCard === 1 && (
           <Grid container spacing={2}>
             {/* Family Information Card */}
@@ -1475,6 +1612,10 @@ const DataSharingTab: React.FC<{
   onDataSyncConsentOpened?: () => void;
   onRequestDataSyncConsent: () => void;
   onConsentCreated?: () => void;
+  clinvarResults?: any[];
+  africanPopulationData?: any[];
+  onGenerateClinVarInsights?: () => void;
+  clinvarLoading?: boolean;
 }> = ({
   walletInterface,
   genomicData,
@@ -1482,6 +1623,10 @@ const DataSharingTab: React.FC<{
   onDataSyncConsentOpened,
   onRequestDataSyncConsent,
   onConsentCreated,
+  clinvarResults = [],
+  africanPopulationData = [],
+  onGenerateClinVarInsights,
+  clinvarLoading = false,
 }) => {
   // Auto-open data sync consent dialog if requested
   React.useEffect(() => {
